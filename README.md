@@ -1,12 +1,18 @@
-# Cara Menjalankan Program
+# README - Cara Run Terbaru
 
-Seluruh langkah dijalankan dari folder utama repository, yaitu folder yang berisi:
+Jalankan semua command dari folder utama repository, yaitu folder yang berisi:
 
 ```text
 soal_1  soal_2  soal_3
 ```
 
-File tambahan yang perlu disiapkan di folder `~/Downloads`:
+Contoh:
+
+```bash
+cd ~/"Modul 4"
+```
+
+File tambahan yang disiapkan di `~/Downloads`:
 
 ```text
 amba_files.zip
@@ -14,73 +20,72 @@ notes.csv.enc
 server
 ```
 
-Masuk ke folder hasil extract repository. Contoh jika hasil extract ada di Downloads:
-
-```bash
-cd ~/Downloads/SISOP-4-2026-IT-124-main
-```
-
-Jika nama folder berbeda, sesuaikan dengan lokasi hasil extract. Cek posisi folder:
-
-```bash
-ls
-```
-
-Output yang diharapkan:
-
-```text
-soal_1  soal_2  soal_3
-```
-
 ---
 
-## Requirement Awal
 
-### A. Update package list
+# 1. Requirement Awal
+
+## A. Update package list
 
 ```bash
 sudo apt update
 ```
 
-### B. Install dependency FUSE dan compiler
+Penjelasan: memperbarui daftar package sebelum install dependency.
+
+## B. Install dependency FUSE dan compiler
 
 ```bash
 sudo apt install -y gcc pkg-config libfuse3-dev fuse3
 ```
 
-### C. Install dependency Docker, Samba, dan tools tambahan
+Penjelasan: menginstall compiler C dan library FUSE3 yang dibutuhkan untuk Soal 1 dan Soal 2.
+
+## C. Install Docker, Samba client, dan tools tambahan
 
 ```bash
 sudo apt install -y docker.io smbclient cifs-utils tree zip unzip curl xxd
 ```
 
-### D. Aktifkan Docker dan FUSE
+Penjelasan: menginstall Docker untuk container, `smbclient` untuk testing Samba, serta tools seperti `unzip`, `tree`, dan `xxd`.
+
+## D. Aktifkan Docker
 
 ```bash
 sudo systemctl enable --now docker
 ```
 
+Penjelasan: memastikan service Docker aktif.
+
+## E. Aktifkan module FUSE
+
 ```bash
 sudo modprobe fuse
 ```
 
-### E. Aktifkan konfigurasi `allow_other`
+Penjelasan: memastikan module FUSE aktif di kernel.
+
+## F. Aktifkan konfigurasi `allow_other`
 
 ```bash
 sudo sed -i 's/^#user_allow_other/user_allow_other/' /etc/fuse.conf
 ```
 
+Penjelasan: mengaktifkan konfigurasi `user_allow_other` pada FUSE.
+
 ```bash
 grep -q '^user_allow_other' /etc/fuse.conf || echo 'user_allow_other' | sudo tee -a /etc/fuse.conf
 ```
 
+Penjelasan: memastikan konfigurasi `user_allow_other` benar-benar ada.
+
 ---
 
-# Cara Run Soal 1
+# 2. Cara Run Soal 1
 
-Soal 1 berfokus pada FUSE yang membaca file perjalanan Mas Amba dari `amba_files.zip`, lalu membuat file virtual bernama `tujuan.txt`.
+Soal 1 menjalankan FUSE untuk membaca file dari `amba_files.zip` dan membuat file virtual `tujuan.txt`.
 
-## A. Menyiapkan file ZIP bahan
+## A. Siapkan bahan dari ZIP
 
 Masuk ke folder Soal 1:
 
@@ -88,35 +93,31 @@ Masuk ke folder Soal 1:
 cd soal_1
 ```
 
-Lepaskan mount lama jika masih ada:
+Penjelasan: masuk ke folder pengerjaan Soal 1.
+
+Lepaskan mount lama jika masih aktif:
 
 ```bash
 fusermount3 -u mnt 2>/dev/null || true
 ```
 
+Penjelasan: melepas mount FUSE lama agar tidak bentrok.
+
 Bersihkan runtime lama:
 
 ```bash
-rm -rf amba_files
+rm -rf amba_files mnt kenz_rescue fuse.log amba_files.zip
 ```
 
-```bash
-rm -rf mnt
-```
+Penjelasan: menghapus folder/file hasil run sebelumnya.
 
-```bash
-rm -f kenz_rescue
-```
-
-```bash
-rm -f fuse.log
-```
-
-Copy file bahan dari `Downloads` ke folder Soal 1:
+Copy bahan dari Downloads:
 
 ```bash
 cp ~/Downloads/amba_files.zip .
 ```
+
+Penjelasan: menyalin file bahan `amba_files.zip` ke folder Soal 1.
 
 Buat mount point:
 
@@ -124,29 +125,23 @@ Buat mount point:
 mkdir -p mnt
 ```
 
-Cek file bahan:
+Penjelasan: membuat folder `mnt` untuk tempat hasil mount FUSE.
 
-```bash
-ls
-```
-
-Output minimal yang diharapkan:
-
-```text
-amba_files.zip  kenz_rescue.c  mnt
-```
-
-Unzip file bahan:
+Unzip bahan:
 
 ```bash
 unzip amba_files.zip
 ```
 
-Cek isi folder bahan:
+Penjelasan: mengekstrak file `amba_files.zip` sehingga terbentuk folder `amba_files`.
+
+Cek isi bahan:
 
 ```bash
 ls amba_files
 ```
+
+Penjelasan: memastikan file `1.txt` sampai `7.txt` berhasil diekstrak.
 
 Output yang diharapkan:
 
@@ -160,37 +155,37 @@ Cek salah satu isi file:
 cat amba_files/1.txt
 ```
 
-File tersebut harus memiliki baris koordinat:
+Penjelasan: memastikan isi file bahan terbaca dan memiliki baris koordinat.
 
-```text
-KOORD: -7.957
-```
-
-## B. Compile program Soal 1
+## B. Compile program
 
 ```bash
 gcc kenz_rescue.c $(pkg-config fuse3 --cflags --libs) -o kenz_rescue
 ```
 
-## C. Jalankan FUSE Soal 1
+Penjelasan: compile program `kenz_rescue.c` menjadi executable `kenz_rescue`.
+
+## C. Jalankan FUSE
 
 ```bash
 ./kenz_rescue amba_files mnt -f > fuse.log 2>&1 &
 ```
 
-Tunggu proses mount:
+Penjelasan: menjalankan FUSE dengan sumber `amba_files` dan mount point `mnt`.
 
 ```bash
 sleep 2
 ```
 
-## D. Cek hasil Soal 1
+Penjelasan: memberi waktu agar proses mount selesai.
 
-Cek isi mount point:
+## D. Cek hasil Soal 1
 
 ```bash
 ls mnt
 ```
+
+Penjelasan: melihat isi mount point. Harus muncul file `tujuan.txt`.
 
 Output yang diharapkan:
 
@@ -198,11 +193,11 @@ Output yang diharapkan:
 1.txt  2.txt  3.txt  4.txt  5.txt  6.txt  7.txt  tujuan.txt
 ```
 
-Cek isi file virtual `tujuan.txt`:
-
 ```bash
 cat mnt/tujuan.txt
 ```
+
+Penjelasan: membaca file virtual hasil gabungan koordinat.
 
 Output yang diharapkan:
 
@@ -216,17 +211,15 @@ Pastikan `tujuan.txt` tidak ada di folder asli:
 ls amba_files
 ```
 
-Output yang diharapkan:
+Penjelasan: membuktikan `tujuan.txt` hanya file virtual di mount point.
 
-```text
-1.txt  2.txt  3.txt  4.txt  5.txt  6.txt  7.txt
-```
-
-Stop FUSE Soal 1:
+Stop FUSE:
 
 ```bash
 fusermount3 -u mnt
 ```
+
+Penjelasan: melepas mount FUSE setelah selesai testing.
 
 Kembali ke root repository:
 
@@ -236,11 +229,11 @@ cd ..
 
 ---
 
-# Cara Run Soal 2
+# 3. Cara Run Soal 2
 
-Soal 2 berfokus pada FUSE terenkripsi, file `.enc`, Docker server, dan client.
+Soal 2 menjalankan FUSE terenkripsi, menampilkan file `.enc` sebagai file normal, lalu menjalankan server melalui Docker.
 
-## A. Menyiapkan encrypted storage, mount point, dan server
+## A. Siapkan storage dan server
 
 Masuk ke folder Soal 2:
 
@@ -248,71 +241,79 @@ Masuk ke folder Soal 2:
 cd soal_2
 ```
 
-Lepaskan mount lama jika masih ada:
+Penjelasan: masuk ke folder pengerjaan Soal 2.
+
+Lepaskan mount lama:
 
 ```bash
 fusermount3 -u fuse_mount 2>/dev/null || true
 ```
 
-Hapus container lama jika ada:
+Penjelasan: melepas mount FUSE lama.
+
+Hapus container lama:
 
 ```bash
 sudo docker rm -f db_app 2>/dev/null || true
 ```
 
-Bersihkan runtime lama:
+Penjelasan: menghapus container server lama agar tidak bentrok.
+
+Bersihkan file runtime lama:
 
 ```bash
-rm -f fuse
+rm -f fuse client fuse.log
 ```
+
+Penjelasan: menghapus executable dan log lama.
+
+Bersihkan folder storage dan mount:
 
 ```bash
-rm -f client
+rm -rf encrypted_storage/* fuse_mount/*
 ```
 
-```bash
-rm -f fuse.log
-```
+Penjelasan: membersihkan hasil run sebelumnya.
 
-```bash
-rm -rf encrypted_storage/*
-```
-
-```bash
-rm -rf fuse_mount/*
-```
-
-Buat folder backend untuk file terenkripsi:
+Buat folder backend dan mount point:
 
 ```bash
 mkdir -p encrypted_storage/tests
 ```
 
-Buat folder mount point:
+Penjelasan: membuat folder backend untuk file `.enc`.
 
 ```bash
 mkdir -p fuse_mount
 ```
 
-Copy file `notes.csv.enc` dari `Downloads` ke backend:
+Penjelasan: membuat folder mount point FUSE.
+
+Copy file terenkripsi dari Downloads:
 
 ```bash
 cp ~/Downloads/notes.csv.enc encrypted_storage/tests/notes.csv.enc
 ```
 
-Copy file `server` dari `Downloads` ke folder Soal 2:
+Penjelasan: memasukkan file `.enc` sebagai bahan uji FUSE.
+
+Copy server dari Downloads:
 
 ```bash
 cp ~/Downloads/server ./server
 ```
 
-Beri permission executable pada `server`:
+Penjelasan: memasukkan binary server ke folder Soal 2.
+
+Beri permission executable:
 
 ```bash
 chmod +x server
 ```
 
-Cek file penting:
+Penjelasan: membuat file `server` dapat dijalankan.
+
+Cek file bahan:
 
 ```bash
 ls encrypted_storage/tests
@@ -324,27 +325,27 @@ Output yang diharapkan:
 notes.csv.enc
 ```
 
-Cek file server:
+Cek server:
 
 ```bash
 ls -l server
 ```
 
-Output harus menunjukkan file `server` sudah ada dan executable.
+Penjelasan: memastikan file server tersedia dan executable.
 
-## B. Compile program FUSE dan client
-
-Compile FUSE:
+## B. Compile FUSE dan client
 
 ```bash
 gcc fuse.c $(pkg-config fuse3 --cflags --libs) -o fuse
 ```
 
-Compile client:
+Penjelasan: compile program FUSE Soal 2.
 
 ```bash
 gcc client.c -o client
 ```
+
+Penjelasan: compile program client.
 
 Cek hasil compile:
 
@@ -352,27 +353,27 @@ Cek hasil compile:
 ls
 ```
 
-Output minimal yang diharapkan terdapat:
+Output minimal yang diharapkan:
 
 ```text
 client  fuse  server
 ```
 
-## C. Jalankan FUSE dan cek enkripsi/dekripsi
-
-Jalankan FUSE:
+## C. Jalankan FUSE dan cek decrypt
 
 ```bash
 ./fuse encrypted_storage fuse_mount -o allow_other -f > fuse.log 2>&1 &
 ```
 
-Tunggu proses mount:
+Penjelasan: menjalankan FUSE dengan backend `encrypted_storage` dan mount point `fuse_mount`.
 
 ```bash
 sleep 2
 ```
 
-Cek file yang muncul di mount point:
+Penjelasan: menunggu proses mount selesai.
+
+Cek tampilan file di mount point:
 
 ```bash
 ls fuse_mount/tests
@@ -384,7 +385,9 @@ Output yang diharapkan:
 notes.csv
 ```
 
-Cek isi file hasil decrypt:
+Penjelasan: file asli `notes.csv.enc` tampil sebagai `notes.csv`.
+
+Cek isi decrypt:
 
 ```bash
 cat fuse_mount/tests/notes.csv
@@ -397,13 +400,17 @@ author,notes
 admin,TEST_SUCCESS
 ```
 
-Buat file uji baru lewat mount point:
+Penjelasan: membuktikan file `.enc` berhasil didekripsi saat dibaca melalui FUSE.
+
+Tes tulis file baru:
 
 ```bash
 echo "halo database" > fuse_mount/test.txt
 ```
 
-Baca file uji:
+Penjelasan: menulis file normal melalui mount point.
+
+Baca file baru:
 
 ```bash
 cat fuse_mount/test.txt
@@ -415,17 +422,19 @@ Output yang diharapkan:
 halo database
 ```
 
-Cek file asli di backend:
+Cek file backend:
 
 ```bash
 ls encrypted_storage
 ```
 
-Output minimal yang diharapkan:
+Output minimal:
 
 ```text
 test.txt.enc  tests
 ```
+
+Penjelasan: file yang ditulis dari mount point tersimpan sebagai `.enc`.
 
 Cek isi file terenkripsi:
 
@@ -433,7 +442,7 @@ Cek isi file terenkripsi:
 xxd encrypted_storage/test.txt.enc
 ```
 
-Isi file seharusnya tidak terbaca sebagai teks normal.
+Penjelasan: memastikan isi backend tidak terbaca sebagai teks normal.
 
 ## D. Jalankan Docker server dan client
 
@@ -443,11 +452,15 @@ Build Docker image:
 sudo docker build -t soal-2-modul-4-sisop .
 ```
 
+Penjelasan: membuat image Docker untuk server Soal 2.
+
 Jalankan container server:
 
 ```bash
 sudo docker run -d --name db_app -p 9000:9000 -v "$(pwd)/fuse_mount:/app/db" soal-2-modul-4-sisop
 ```
+
+Penjelasan: menjalankan server pada port `9000` dan menghubungkan `fuse_mount` ke `/app/db`.
 
 Cek container:
 
@@ -455,11 +468,7 @@ Cek container:
 sudo docker ps
 ```
 
-Output yang diharapkan terdapat container:
-
-```text
-db_app
-```
+Penjelasan: memastikan container `db_app` berjalan.
 
 Cek log server:
 
@@ -467,39 +476,39 @@ Cek log server:
 sudo docker logs db_app
 ```
 
+Penjelasan: melihat output server.
+
 Jalankan client:
 
 ```bash
 ./client 127.0.0.1 9000
 ```
 
-Output awal yang diharapkan:
+Penjelasan: menghubungkan client ke server.
 
-```text
-Connected to DB Server on 127.0.0.1:9000
-Type EXIT to quit.
-db>
-```
-
-Di dalam client, coba command:
+Di dalam client, ketik:
 
 ```text
 HELP
 ```
 
-Untuk keluar dari client:
+Penjelasan: melihat daftar command server.
+
+Keluar dari client:
 
 ```text
 EXIT
 ```
 
-Stop container Soal 2:
+Penjelasan: menutup client.
+
+Stop container:
 
 ```bash
 sudo docker rm -f db_app
 ```
 
-Stop FUSE Soal 2:
+Stop FUSE:
 
 ```bash
 fusermount3 -u fuse_mount
@@ -513,11 +522,11 @@ cd ..
 
 ---
 
-# Cara Run Soal 3
+# 4. Cara Run Soal 3
 
-Soal 3 berfokus pada Samba server, user/group, permission share, persistence data, dan logging.
+Soal 3 menjalankan Samba server menggunakan Docker Compose, mengatur permission user, persistence data, dan logging.
 
-## A. Menyiapkan folder volume dan permission
+## A. Siapkan folder volume
 
 Masuk ke folder Soal 3:
 
@@ -525,35 +534,15 @@ Masuk ke folder Soal 3:
 cd soal_3
 ```
 
-Buat folder `docs`:
+Penjelasan: masuk ke folder pengerjaan Soal 3.
+
+Buat folder volume:
 
 ```bash
-mkdir -p data/docs
+mkdir -p data/docs data/ebooks data/papers data/sourcecode logs
 ```
 
-Buat folder `ebooks`:
-
-```bash
-mkdir -p data/ebooks
-```
-
-Buat folder `papers`:
-
-```bash
-mkdir -p data/papers
-```
-
-Buat folder `sourcecode`:
-
-```bash
-mkdir -p data/sourcecode
-```
-
-Buat folder log:
-
-```bash
-mkdir -p logs
-```
+Penjelasan: membuat folder share dan folder log yang digunakan sebagai volume Docker.
 
 Buat file log utama:
 
@@ -561,35 +550,41 @@ Buat file log utama:
 touch logs/libraryit.log
 ```
 
-Beri permission executable pada `entrypoint.sh`:
+Penjelasan: membuat file log utama.
+
+Beri permission executable pada entrypoint:
 
 ```bash
 chmod +x entrypoint.sh
 ```
 
-Matikan Samba host agar port 445 tidak bentrok:
+Penjelasan: agar script entrypoint dapat dijalankan oleh container.
+
+Matikan Samba host:
 
 ```bash
 sudo systemctl stop smbd nmbd 2>/dev/null || true
 ```
 
+Penjelasan: mencegah port `445` bentrok dengan Samba di container.
+
 ## B. Build dan jalankan Docker Compose
 
-Hapus container lama jika ada:
+Hapus container lama:
 
 ```bash
-sudo docker rm -f libraryit-server 2>/dev/null || true
+sudo docker rm -f libraryit-server libraryit-logger 2>/dev/null || true
 ```
 
-```bash
-sudo docker rm -f libraryit-logger 2>/dev/null || true
-```
+Penjelasan: membersihkan container lama jika masih ada.
 
-Matikan compose lama jika ada:
+Matikan compose lama:
 
 ```bash
 sudo docker compose down --remove-orphans 2>/dev/null || true
 ```
+
+Penjelasan: menghentikan service lama dan membersihkan orphan container.
 
 Build image:
 
@@ -597,17 +592,23 @@ Build image:
 sudo docker compose build --no-cache
 ```
 
+Penjelasan: membangun ulang image Docker tanpa cache.
+
 Jalankan container:
 
 ```bash
 sudo docker compose up -d
 ```
 
-Tunggu container siap:
+Penjelasan: menjalankan Samba server dan logger di background.
+
+Tunggu service siap:
 
 ```bash
 sleep 5
 ```
+
+Penjelasan: memberi waktu agar Samba selesai startup.
 
 Cek container:
 
@@ -615,31 +616,22 @@ Cek container:
 sudo docker ps
 ```
 
-Output yang diharapkan terdapat:
+Output yang diharapkan:
 
 ```text
 libraryit-server
 libraryit-logger
 ```
 
-## C. Tes akses user dan permission share
+## C. Tes user dan permission share
 
-Tes daftar share sebagai `member`:
+Tes daftar share sebagai member:
 
 ```bash
 smbclient -L //127.0.0.1 -U member --password='member123' -m SMB3
 ```
 
-Output yang diharapkan:
-
-```text
-docs
-ebooks
-papers
-IPC$
-```
-
-Share `sourcecode` tidak muncul untuk `member`.
+Penjelasan: melihat share yang dapat diakses oleh user `member`.
 
 Tes anonymous access:
 
@@ -647,57 +639,57 @@ Tes anonymous access:
 smbclient -L //127.0.0.1 -N -m SMB3
 ```
 
-Hasil yang diharapkan: anonymous access gagal.
+Penjelasan: memastikan akses tanpa login ditolak.
 
-Tes member membaca `docs`:
+Tes member baca docs:
 
 ```bash
 smbclient //127.0.0.1/docs -U member --password='member123' -m SMB3 -c "ls"
 ```
 
-Buat file testing untuk `ebooks`:
+Penjelasan: memastikan `member` dapat membaca share `docs`.
+
+Tes contributor upload ke ebooks:
 
 ```bash
 echo "test ebook" > ~/test_ebook.txt
 ```
 
-Upload file ke `ebooks` sebagai contributor:
-
 ```bash
 smbclient //127.0.0.1/ebooks -U contributor --password='contrib456' -m SMB3 -c "put $HOME/test_ebook.txt test_ebook.txt; ls"
 ```
 
-Buat file testing untuk `papers`:
+Penjelasan: memastikan `contributor` dapat menulis ke `ebooks`.
+
+Tes contributor upload ke papers:
 
 ```bash
 echo "test paper" > ~/test_paper.txt
 ```
 
-Upload file ke `papers` sebagai contributor:
-
 ```bash
 smbclient //127.0.0.1/papers -U contributor --password='contrib456' -m SMB3 -c "put $HOME/test_paper.txt test_paper.txt; ls"
 ```
 
-Buat file testing untuk `docs`:
+Penjelasan: memastikan `contributor` dapat menulis ke `papers`.
+
+Tes librarian upload ke docs:
 
 ```bash
 echo "dokumen librarian" > ~/test_docs.txt
 ```
 
-Upload file ke `docs` sebagai librarian:
-
 ```bash
 smbclient //127.0.0.1/docs -U librarian --password='lib789' -m SMB3 -c "put $HOME/test_docs.txt test_docs.txt; ls"
 ```
 
-Buat file testing contributor untuk `docs`:
+Penjelasan: memastikan `librarian` dapat menulis ke `docs`.
+
+Tes contributor tidak bisa upload ke docs:
 
 ```bash
 echo "dokumen contributor" > ~/contributor_docs.txt
 ```
-
-Tes contributor tidak bisa menulis ke `docs`:
 
 ```bash
 smbclient //127.0.0.1/docs -U contributor --password='contrib456' -m SMB3 -c "put $HOME/contributor_docs.txt contributor_docs.txt; ls"
@@ -709,9 +701,9 @@ Output yang diharapkan:
 NT_STATUS_ACCESS_DENIED
 ```
 
-atau upload gagal.
+Penjelasan: membuktikan `contributor` tidak memiliki hak tulis ke `docs`.
 
-Tes member tidak bisa akses `sourcecode`:
+Tes member tidak bisa akses sourcecode:
 
 ```bash
 smbclient //127.0.0.1/sourcecode -U member --password='member123' -m SMB3 -c "ls"
@@ -723,17 +715,19 @@ Output yang diharapkan:
 NT_STATUS_ACCESS_DENIED
 ```
 
-Buat file testing untuk `sourcecode`:
+Penjelasan: membuktikan `member` tidak bisa mengakses share `sourcecode`.
+
+Tes contributor upload ke sourcecode:
 
 ```bash
-echo "print('hello sourcecode')" > ~/main.py
+echo "int main() { return 0; }" > ~/test_sourcecode.c
 ```
-
-Upload file ke `sourcecode` sebagai contributor:
 
 ```bash
-smbclient //127.0.0.1/sourcecode -U contributor --password='contrib456' -m SMB3 -c "put $HOME/main.py main.py; ls"
+smbclient //127.0.0.1/sourcecode -U contributor --password='contrib456' -m SMB3 -c "put $HOME/test_sourcecode.c test_sourcecode.c; ls"
 ```
+
+Penjelasan: membuktikan `contributor` dapat menulis file kode ke share `sourcecode`.
 
 ## D. Cek persistence dan logging
 
@@ -743,16 +737,16 @@ Cek persistence data:
 sudo find data -type f
 ```
 
-Output yang diharapkan setelah testing:
+Output yang diharapkan:
 
 ```text
 data/ebooks/test_ebook.txt
 data/papers/test_paper.txt
 data/docs/test_docs.txt
-data/sourcecode/main.py
+data/sourcecode/test_sourcecode.c
 ```
 
-Artinya data berhasil tersimpan di folder host `data`, bukan hanya di dalam container.
+Penjelasan: membuktikan file tersimpan di folder host `data`.
 
 Cek log final:
 
@@ -760,24 +754,23 @@ Cek log final:
 cat logs/libraryit.log | tail -30
 ```
 
+Penjelasan: menampilkan log aktivitas yang sudah diformat.
+
 Cek log container logger:
 
 ```bash
 sudo docker logs libraryit-logger --tail=30
 ```
 
-Format log yang diharapkan:
-
-```text
-[YYYY-MM-DD HH:MM:SS] [INFO] [username] [AKSI] [file/share]
-[YYYY-MM-DD HH:MM:SS] [WARNING] [username] [DENIED] [file/share]
-```
+Penjelasan: memastikan container logger berjalan.
 
 Stop Soal 3:
 
 ```bash
 sudo docker compose down
 ```
+
+Penjelasan: menghentikan semua service Docker Compose.
 
 Kembali ke root repository:
 
@@ -787,24 +780,18 @@ cd ..
 
 ---
 
-# Bersih-Bersih Semua Hasil Run
+# 5. Bersih-Bersih 1 Command
 
-Command ini dijalankan dari folder utama repository, yaitu folder yang berisi `soal_1`, `soal_2`, dan `soal_3`.
+Jalankan dari folder utama repository.
 
 ```bash
-bash -lc 'set +e; fusermount3 -u soal_1/mnt 2>/dev/null || true; fusermount3 -u soal_2/fuse_mount 2>/dev/null || true; sudo docker rm -f db_app libraryit-server libraryit-logger 2>/dev/null || true; (cd soal_3 && sudo docker compose down --remove-orphans 2>/dev/null || sudo docker-compose down --remove-orphans 2>/dev/null || true); rm -rf soal_1/amba_files soal_1/mnt soal_1/kenz_rescue soal_1/fuse.log soal_1/amba_files.zip; rm -f soal_2/fuse soal_2/client soal_2/fuse.log; sudo rm -rf soal_2/encrypted_storage/* soal_2/fuse_mount/*; sudo rm -rf soal_3/data/docs/* soal_3/data/ebooks/* soal_3/data/papers/* soal_3/data/sourcecode/* soal_3/logs/*; mkdir -p soal_2/encrypted_storage soal_2/fuse_mount soal_3/data/docs soal_3/data/ebooks soal_3/data/papers soal_3/data/sourcecode soal_3/logs; touch soal_3/logs/libraryit.log; sudo chown -R "$USER:$USER" soal_3/data soal_3/logs soal_2/encrypted_storage soal_2/fuse_mount 2>/dev/null || true; chmod 755 soal_2/encrypted_storage soal_2/fuse_mount soal_3/data soal_3/data/docs soal_3/data/ebooks soal_3/data/papers soal_3/data/sourcecode soal_3/logs; chmod 644 soal_3/logs/libraryit.log; echo "Cleanup selesai. Repository sudah bersih dari hasil runtime."'
+bash -lc 'set +e; fusermount3 -u soal_1/mnt 2>/dev/null || true; fusermount3 -u soal_2/fuse_mount 2>/dev/null || true; sudo docker rm -f db_app libraryit-server libraryit-logger 2>/dev/null || true; (cd soal_3 && sudo docker compose down --remove-orphans 2>/dev/null || sudo docker-compose down --remove-orphans 2>/dev/null || true); rm -rf soal_1/amba_files soal_1/mnt soal_1/kenz_rescue soal_1/fuse.log soal_1/amba_files.zip; rm -f soal_2/fuse soal_2/client soal_2/fuse.log; sudo rm -rf soal_2/encrypted_storage/* soal_2/fuse_mount/*; sudo rm -rf soal_3/data/docs/* soal_3/data/ebooks/* soal_3/data/papers/* soal_3/data/sourcecode/* soal_3/logs/*; rm -f ~/main.py ~/test_sourcecode.c ~/test_ebook.txt ~/test_paper.txt ~/test_docs.txt ~/contributor_docs.txt; mkdir -p soal_2/encrypted_storage soal_2/fuse_mount soal_3/data/docs soal_3/data/ebooks soal_3/data/papers soal_3/data/sourcecode soal_3/logs; touch soal_3/logs/libraryit.log; sudo chown -R "$USER:$USER" soal_3/data soal_3/logs soal_2/encrypted_storage soal_2/fuse_mount 2>/dev/null || true; chmod 755 soal_2/encrypted_storage soal_2/fuse_mount soal_3/data soal_3/data/docs soal_3/data/ebooks soal_3/data/papers soal_3/data/sourcecode soal_3/logs; chmod 644 soal_3/logs/libraryit.log; echo "Cleanup selesai. Repository sudah bersih dari hasil runtime."'
 ```
 
-Setelah cleanup, cek struktur folder:
+Penjelasan: command ini melepas mount FUSE, menghentikan container, menghapus hasil compile, membersihkan file runtime, menghapus file testing, membuat ulang folder penting, dan memperbaiki permission folder.
+
+Cek hasil akhir:
 
 ```bash
 tree
-```
-
-Catatan: command cleanup ini hanya membersihkan hasil run di folder repository. File berikut tetap aman di `Downloads`:
-
-```text
-~/Downloads/amba_files.zip
-~/Downloads/notes.csv.enc
-~/Downloads/server
 ```
