@@ -6,21 +6,21 @@ Seluruh langkah dijalankan dari folder utama repository, yaitu folder yang beris
 soal_1  soal_2  soal_3
 ```
 
-Jika ZIP didownload dari GitHub, biasanya nama folder hasil extract menjadi:
+File tambahan yang perlu disiapkan di folder `~/Downloads`:
 
 ```text
-SISOP-4-2026-IT-124-main
+amba_files.zip
+notes.csv.enc
+server
 ```
 
-Masuk ke folder tersebut:
+Masuk ke folder hasil extract repository. Contoh jika hasil extract ada di Downloads:
 
 ```bash
 cd ~/Downloads/SISOP-4-2026-IT-124-main
 ```
 
-Jika nama folder berbeda, sesuaikan dengan lokasi hasil extract.
-
-Cek posisi folder:
+Jika nama folder berbeda, sesuaikan dengan lokasi hasil extract. Cek posisi folder:
 
 ```bash
 ls
@@ -78,9 +78,9 @@ grep -q '^user_allow_other' /etc/fuse.conf || echo 'user_allow_other' | sudo tee
 
 # Cara Run Soal 1
 
-Soal 1 berfokus pada FUSE yang membaca file perjalanan Mas Amba dan membuat file virtual `tujuan.txt`.
+Soal 1 berfokus pada FUSE yang membaca file perjalanan Mas Amba dari `amba_files.zip`, lalu membuat file virtual bernama `tujuan.txt`.
 
-## A. Menyiapkan folder dan file bahan
+## A. Menyiapkan file ZIP bahan
 
 Masuk ke folder Soal 1:
 
@@ -94,7 +94,7 @@ Lepaskan mount lama jika masih ada:
 fusermount3 -u mnt 2>/dev/null || true
 ```
 
-Bersihkan file runtime lama:
+Bersihkan runtime lama:
 
 ```bash
 rm -rf amba_files
@@ -112,136 +112,37 @@ rm -f kenz_rescue
 rm -f fuse.log
 ```
 
-Buat folder bahan dan mount point:
+Copy file bahan dari `Downloads` ke folder Soal 1:
 
 ```bash
-mkdir -p amba_files
+cp ~/Downloads/amba_files.zip .
 ```
+
+Buat mount point:
 
 ```bash
 mkdir -p mnt
 ```
 
-Buat file `1.txt`:
-
-```bash
-cat > amba_files/1.txt <<'EOF'
-=== HARI 1 ===
-
-Hari pertama ekspedisi pertama. Saya berangkat dari Tembok Ratapan Keputih jam 5 pagi.
-Tujuan saya: Petilasan Puncak Gunung Kawi, untuk meng-update firmware Pusaka Pesugihan v2.7 milik mendiang paman.
-
-KOORD: -7.957
-
-Sampai nanti, paman.
--- Amba
-EOF
-```
-
-Buat file `2.txt`:
-
-```bash
-cat > amba_files/2.txt <<'EOF'
-=== HARI 2 ===
-
-Hari kedua. Sampai Pos 1 Gunung Kawi setelah delapan jam jalan kaki.
-Kabut tipis, masih bisa lihat warung madura di pinggir jalur.
-Saya mampir makan gajah baru 12 batang. Pemilik warung nanya saya mau kemana. Saya jawab 'mau naik anjing'. Dia langsung paham, tidak banyak tanya.
-
-KOORD: 382728
-
-Sampai nanti, paman.
--- Amba
-EOF
-```
-
-Buat file `3.txt`:
-
-```bash
-cat > amba_files/3.txt <<'EOF'
-=== HARI 3 ===
-
-Hari ketiga. Pos 2. Sinyal HP mati total.
-Saya baca lagi catatan paman: 'kalau sudah di sini, jangan menengok ke belakang sampai puncak'.
-Saya patuh. Tidak menengok. Walaupun ada suara "HAI 4nt3k-4nt3k 453N9" di belakang saya seharian. Pelan, sabar, mengikuti ritme jalan saya.
-
-KOORD: 443728, 
-
-Sampai nanti, paman.
--- Amba
-EOF
-```
-
-Buat file `4.txt`:
-
-```bash
-cat > amba_files/4.txt <<'EOF'
-=== HARI 4 ===
-
-Hari keempat. Pos 3 - Sumber Air Sungai Kembar.
-Saya isi botol sambil baca mantra v2.7. Mantranya panjang sekali, kayak log kernel waktu boot Arch Windows.
-Selesai mantra, satu daun beringin jatuh tepat ke tangan saya. Pertanda baik, kata paman dulu. kaki mulai terasa hangat (atau bisa jadi gweh ngompol).
-
-KOORD: 112.469
-
-Sampai nanti, paman.
--- Amba
-EOF
-```
-
-Buat file `5.txt`:
-
-```bash
-cat > amba_files/5.txt <<'EOF'
-=== HARI 5 ===
-
-Hari kelima. Trek makin berat. Kabut tebal sekali, jarak pandang dua meter.
-Saya hampir tersesat dua kali. Kompas tidak stabil di sekitar Pos 5, selalu menunjuk arah yang berbeda.
-Tanah bergetar pelan, semacam denyut nadi. Lokasi sudah dekat.
-
-KOORD: 8688227961, 
-
-Sampai nanti, paman.
--- Amba
-EOF
-```
-
-Buat file `6.txt`:
-
-```bash
-cat > amba_files/6.txt <<'EOF'
-=== HARI 6 ===
-
-Hari keenam. Pos 6 - Pondok Tua sebelum puncak.
-Saya bermalam di sini. Tidak ada penjaga, hanya angin dan bunyi gamelan sayup-sayup dari arah puncak.
-Besok subuh saya naik ke petilasan. Sesuai catatan paman, pusaka harus diaktifkan tepat tengah malam berikutnya.
-
-KOORD: 23:
-
-Sampai nanti, paman.
--- Amba
-EOF
-```
-
-Buat file `7.txt`:
-
-```bash
-cat > amba_files/7.txt <<'EOF'
-=== HARI 7 ===
-
-Hari ketujuh. Petilasan Puncak Kawi.
-Saya gelar pusaka di altar batu. Saat lilin pertama saya nyalakan, kabut tiba-tiba membentuk sosok pria bermuka familiar, sendirian, berdiri tepat di hadapan saya. Sang Pria Solo Penjaga Puncak!!!
-Dia bicara pelan: "Didatengin tanpa janjian saya diem, didatengin tanpa suguhan saya juga diem, disalahin terus klo ada pendaki ngilang saya juga diem...TAPI KALI INI SAYA AKAN LAWAN!...firmware ini cuma bisa di-update kalau kau bawa tumbal. Bukan ayam bangkok, bukan kadal sunda" Melainkan Sebiji  Asisten praktikum yang psikopat. Yang doyan kasih soal sulit. Yang rilis soal jam 00.00 dan 03.00 untuk meneror mahasigma. Cari dia. Bawa dia. Tengah malam berikutnya, di sini.'
-Saya turun gunung dengan rencana baru. Saya cari nama-nama asisten Sisop. Satu nama menonjol: Asisten Kenz.
-
-KOORD: 59 WIB
-
-Sampai nanti, paman.
--- Amba
-EOF
-```
-
 Cek file bahan:
+
+```bash
+ls
+```
+
+Output minimal yang diharapkan:
+
+```text
+amba_files.zip  kenz_rescue.c  mnt
+```
+
+Unzip file bahan:
+
+```bash
+unzip amba_files.zip
+```
+
+Cek isi folder bahan:
 
 ```bash
 ls amba_files
@@ -253,27 +154,37 @@ Output yang diharapkan:
 1.txt  2.txt  3.txt  4.txt  5.txt  6.txt  7.txt
 ```
 
-## B. Compile program
+Cek salah satu isi file:
+
+```bash
+cat amba_files/1.txt
+```
+
+File tersebut harus memiliki baris koordinat:
+
+```text
+KOORD: -7.957
+```
+
+## B. Compile program Soal 1
 
 ```bash
 gcc kenz_rescue.c $(pkg-config fuse3 --cflags --libs) -o kenz_rescue
 ```
 
-Jika tidak ada error, executable `kenz_rescue` berhasil dibuat.
-
-## C. Jalankan FUSE
+## C. Jalankan FUSE Soal 1
 
 ```bash
 ./kenz_rescue amba_files mnt -f > fuse.log 2>&1 &
 ```
 
-Tunggu sebentar:
+Tunggu proses mount:
 
 ```bash
 sleep 2
 ```
 
-## D. Cek hasil sesuai soal
+## D. Cek hasil Soal 1
 
 Cek isi mount point:
 
@@ -287,7 +198,7 @@ Output yang diharapkan:
 1.txt  2.txt  3.txt  4.txt  5.txt  6.txt  7.txt  tujuan.txt
 ```
 
-Cek isi file virtual:
+Cek isi file virtual `tujuan.txt`:
 
 ```bash
 cat mnt/tujuan.txt
@@ -311,7 +222,7 @@ Output yang diharapkan:
 1.txt  2.txt  3.txt  4.txt  5.txt  6.txt  7.txt
 ```
 
-Stop FUSE:
+Stop FUSE Soal 1:
 
 ```bash
 fusermount3 -u mnt
@@ -329,7 +240,7 @@ cd ..
 
 Soal 2 berfokus pada FUSE terenkripsi, file `.enc`, Docker server, dan client.
 
-## A. Menyiapkan folder storage dan file terenkripsi
+## A. Menyiapkan encrypted storage, mount point, dan server
 
 Masuk ke folder Soal 2:
 
@@ -337,7 +248,7 @@ Masuk ke folder Soal 2:
 cd soal_2
 ```
 
-Lepaskan mount lama jika ada:
+Lepaskan mount lama jika masih ada:
 
 ```bash
 fusermount3 -u fuse_mount 2>/dev/null || true
@@ -371,39 +282,37 @@ rm -rf encrypted_storage/*
 rm -rf fuse_mount/*
 ```
 
-Buat folder backend:
+Buat folder backend untuk file terenkripsi:
 
 ```bash
 mkdir -p encrypted_storage/tests
 ```
 
-Buat folder mount:
+Buat folder mount point:
 
 ```bash
 mkdir -p fuse_mount
 ```
 
-Buat file `notes.csv.enc` dari base64:
+Copy file `notes.csv.enc` dari `Downloads` ke backend:
 
 ```bash
-cat > encrypted_storage/tests/notes.csv.enc.b64 <<'EOF'
-FwMCHhkEWhgZAhMFfBcSGx8YWiIzJSIpJSM1NTMlJXw=
-EOF
+cp ~/Downloads/notes.csv.enc encrypted_storage/tests/notes.csv.enc
 ```
 
-Decode menjadi file `.enc`:
+Copy file `server` dari `Downloads` ke folder Soal 2:
 
 ```bash
-base64 -d encrypted_storage/tests/notes.csv.enc.b64 > encrypted_storage/tests/notes.csv.enc
+cp ~/Downloads/server ./server
 ```
 
-Hapus file base64 sementara:
+Beri permission executable pada `server`:
 
 ```bash
-rm -f encrypted_storage/tests/notes.csv.enc.b64
+chmod +x server
 ```
 
-Cek file terenkripsi:
+Cek file penting:
 
 ```bash
 ls encrypted_storage/tests
@@ -414,6 +323,14 @@ Output yang diharapkan:
 ```text
 notes.csv.enc
 ```
+
+Cek file server:
+
+```bash
+ls -l server
+```
+
+Output harus menunjukkan file `server` sudah ada dan executable.
 
 ## B. Compile program FUSE dan client
 
@@ -429,10 +346,16 @@ Compile client:
 gcc client.c -o client
 ```
 
-Beri permission executable untuk server:
+Cek hasil compile:
 
 ```bash
-chmod +x server
+ls
+```
+
+Output minimal yang diharapkan terdapat:
+
+```text
+client  fuse  server
 ```
 
 ## C. Jalankan FUSE dan cek enkripsi/dekripsi
@@ -486,26 +409,25 @@ Baca file uji:
 cat fuse_mount/test.txt
 ```
 
-Output:
+Output yang diharapkan:
 
 ```text
 halo database
 ```
 
-Cek backend:
+Cek file asli di backend:
 
 ```bash
 ls encrypted_storage
 ```
 
-Output minimal:
+Output minimal yang diharapkan:
 
 ```text
-test.txt.enc
-tests
+test.txt.enc  tests
 ```
 
-Cek isi terenkripsi:
+Cek isi file terenkripsi:
 
 ```bash
 xxd encrypted_storage/test.txt.enc
@@ -533,6 +455,12 @@ Cek container:
 sudo docker ps
 ```
 
+Output yang diharapkan terdapat container:
+
+```text
+db_app
+```
+
 Cek log server:
 
 ```bash
@@ -545,25 +473,33 @@ Jalankan client:
 ./client 127.0.0.1 9000
 ```
 
-Di dalam client, coba:
+Output awal yang diharapkan:
+
+```text
+Connected to DB Server on 127.0.0.1:9000
+Type EXIT to quit.
+db>
+```
+
+Di dalam client, coba command:
 
 ```text
 HELP
 ```
 
-Untuk keluar:
+Untuk keluar dari client:
 
 ```text
 EXIT
 ```
 
-Stop container:
+Stop container Soal 2:
 
 ```bash
 sudo docker rm -f db_app
 ```
 
-Stop FUSE:
+Stop FUSE Soal 2:
 
 ```bash
 fusermount3 -u fuse_mount
@@ -625,7 +561,7 @@ Buat file log utama:
 touch logs/libraryit.log
 ```
 
-Beri permission executable:
+Beri permission executable pada `entrypoint.sh`:
 
 ```bash
 chmod +x entrypoint.sh
@@ -719,41 +655,49 @@ Tes member membaca `docs`:
 smbclient //127.0.0.1/docs -U member --password='member123' -m SMB3 -c "ls"
 ```
 
-Tes contributor upload ke `ebooks`:
+Buat file testing untuk `ebooks`:
 
 ```bash
 echo "test ebook" > ~/test_ebook.txt
 ```
 
+Upload file ke `ebooks` sebagai contributor:
+
 ```bash
 smbclient //127.0.0.1/ebooks -U contributor --password='contrib456' -m SMB3 -c "put $HOME/test_ebook.txt test_ebook.txt; ls"
 ```
 
-Tes contributor upload ke `papers`:
+Buat file testing untuk `papers`:
 
 ```bash
 echo "test paper" > ~/test_paper.txt
 ```
 
+Upload file ke `papers` sebagai contributor:
+
 ```bash
 smbclient //127.0.0.1/papers -U contributor --password='contrib456' -m SMB3 -c "put $HOME/test_paper.txt test_paper.txt; ls"
 ```
 
-Tes librarian upload ke `docs`:
+Buat file testing untuk `docs`:
 
 ```bash
 echo "dokumen librarian" > ~/test_docs.txt
 ```
 
+Upload file ke `docs` sebagai librarian:
+
 ```bash
 smbclient //127.0.0.1/docs -U librarian --password='lib789' -m SMB3 -c "put $HOME/test_docs.txt test_docs.txt; ls"
 ```
 
-Tes contributor tidak bisa menulis ke `docs`:
+Buat file testing contributor untuk `docs`:
 
 ```bash
 echo "dokumen contributor" > ~/contributor_docs.txt
 ```
+
+Tes contributor tidak bisa menulis ke `docs`:
 
 ```bash
 smbclient //127.0.0.1/docs -U contributor --password='contrib456' -m SMB3 -c "put $HOME/contributor_docs.txt contributor_docs.txt; ls"
@@ -779,11 +723,13 @@ Output yang diharapkan:
 NT_STATUS_ACCESS_DENIED
 ```
 
-Tes contributor upload ke `sourcecode`:
+Buat file testing untuk `sourcecode`:
 
 ```bash
 echo "print('hello sourcecode')" > ~/main.py
 ```
+
+Upload file ke `sourcecode` sebagai contributor:
 
 ```bash
 smbclient //127.0.0.1/sourcecode -U contributor --password='contrib456' -m SMB3 -c "put $HOME/main.py main.py; ls"
@@ -797,7 +743,7 @@ Cek persistence data:
 sudo find data -type f
 ```
 
-Output yang diharapkan:
+Output yang diharapkan setelah testing:
 
 ```text
 data/ebooks/test_ebook.txt
@@ -805,6 +751,8 @@ data/papers/test_paper.txt
 data/docs/test_docs.txt
 data/sourcecode/main.py
 ```
+
+Artinya data berhasil tersimpan di folder host `data`, bukan hanya di dalam container.
 
 Cek log final:
 
@@ -836,6 +784,7 @@ Kembali ke root repository:
 ```bash
 cd ..
 ```
+
 ---
 
 # Bersih-Bersih Semua Hasil Run
@@ -843,11 +792,19 @@ cd ..
 Command ini dijalankan dari folder utama repository, yaitu folder yang berisi `soal_1`, `soal_2`, dan `soal_3`.
 
 ```bash
-bash -lc 'set +e; fusermount3 -u soal_1/mnt 2>/dev/null || true; fusermount3 -u soal_2/fuse_mount 2>/dev/null || true; sudo docker rm -f db_app libraryit-server libraryit-logger 2>/dev/null || true; (cd soal_3 && sudo docker compose down --remove-orphans 2>/dev/null || sudo docker-compose down --remove-orphans 2>/dev/null || true); rm -rf soal_1/amba_files soal_1/mnt soal_1/kenz_rescue soal_1/fuse.log; rm -f soal_2/fuse soal_2/client soal_2/fuse.log; sudo rm -rf soal_2/encrypted_storage/* soal_2/fuse_mount/*; sudo rm -rf soal_3/data/docs/* soal_3/data/ebooks/* soal_3/data/papers/* soal_3/data/sourcecode/* soal_3/logs/*; mkdir -p soal_2/encrypted_storage soal_2/fuse_mount soal_3/data/docs soal_3/data/ebooks soal_3/data/papers soal_3/data/sourcecode soal_3/logs; touch soal_3/logs/libraryit.log; sudo chown -R "$USER:$USER" soal_3/data soal_3/logs soal_2/encrypted_storage soal_2/fuse_mount 2>/dev/null || true; chmod 755 soal_2/encrypted_storage soal_2/fuse_mount soal_3/data soal_3/data/docs soal_3/data/ebooks soal_3/data/papers soal_3/data/sourcecode soal_3/logs; chmod 644 soal_3/logs/libraryit.log; echo "Cleanup selesai. Repository sudah bersih dari hasil runtime."'
+bash -lc 'set +e; fusermount3 -u soal_1/mnt 2>/dev/null || true; fusermount3 -u soal_2/fuse_mount 2>/dev/null || true; sudo docker rm -f db_app libraryit-server libraryit-logger 2>/dev/null || true; (cd soal_3 && sudo docker compose down --remove-orphans 2>/dev/null || sudo docker-compose down --remove-orphans 2>/dev/null || true); rm -rf soal_1/amba_files soal_1/mnt soal_1/kenz_rescue soal_1/fuse.log soal_1/amba_files.zip; rm -f soal_2/fuse soal_2/client soal_2/fuse.log; sudo rm -rf soal_2/encrypted_storage/* soal_2/fuse_mount/*; sudo rm -rf soal_3/data/docs/* soal_3/data/ebooks/* soal_3/data/papers/* soal_3/data/sourcecode/* soal_3/logs/*; mkdir -p soal_2/encrypted_storage soal_2/fuse_mount soal_3/data/docs soal_3/data/ebooks soal_3/data/papers soal_3/data/sourcecode soal_3/logs; touch soal_3/logs/libraryit.log; sudo chown -R "$USER:$USER" soal_3/data soal_3/logs soal_2/encrypted_storage soal_2/fuse_mount 2>/dev/null || true; chmod 755 soal_2/encrypted_storage soal_2/fuse_mount soal_3/data soal_3/data/docs soal_3/data/ebooks soal_3/data/papers soal_3/data/sourcecode soal_3/logs; chmod 644 soal_3/logs/libraryit.log; echo "Cleanup selesai. Repository sudah bersih dari hasil runtime."'
 ```
 
-Setelah itu cek struktur folder:
+Setelah cleanup, cek struktur folder:
 
 ```bash
 tree
+```
+
+Catatan: command cleanup ini hanya membersihkan hasil run di folder repository. File berikut tetap aman di `Downloads`:
+
+```text
+~/Downloads/amba_files.zip
+~/Downloads/notes.csv.enc
+~/Downloads/server
 ```
