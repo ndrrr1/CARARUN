@@ -299,7 +299,7 @@ cp ~/Downloads/notes.csv.enc encrypted_storage/tests/notes.csv.enc
 ```
 
 ```bash
-cp ~/Downloads/server ./server
+ls server
 ```
 
 ```bash
@@ -320,7 +320,7 @@ notes.csv.enc
 ls -l server
 ```
 
-Penjelasan: file release dari soal disiapkan untuk testing FUSE dan Docker server.
+Penjelasan: file `notes.csv.enc` dari soal disiapkan untuk testing FUSE, sedangkan file `server` sudah tersedia di folder Soal 2 untuk Docker.
 
 ## B. Compile Soal 2
 
