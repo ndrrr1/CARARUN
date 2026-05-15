@@ -19,15 +19,20 @@ File bahan tambahan yang dipakai saat run disimpan di `~/Downloads`:
 ```text
 amba_files.zip
 notes.csv.enc
-server
 ```
 
-Cek dulu:
+File `server` untuk Soal 2 sudah berada di dalam repository:
+
+```text
+soal_2/server
+```
+
+Cek dulu dari root repository:
 
 ```bash
 ls ~/Downloads/amba_files.zip
 ls ~/Downloads/notes.csv.enc
-ls ~/Downloads/server
+ls soal_2/server
 ```
 
 ---
@@ -213,11 +218,7 @@ Tujuan Mas Amba: -7.957382728443728,112.4698688227961,23:59 WIB
 wc -c mnt/tujuan.txt
 ```
 
-Output yang diharapkan:
-
-```text
-66 mnt/tujuan.txt
-```
+Penjelasan: command ini mengecek ukuran file virtual `tujuan.txt`. Angka byte dapat berbeda tergantung apakah program menambahkan newline atau tidak, tetapi ukurannya harus konsisten saat dicek ulang.
 
 ```bash
 ls amba_files/tujuan.txt 2>&1
@@ -1065,3 +1066,9 @@ find . -name "main.py" -print
 ```
 
 Jika tidak ada output, berarti bersih.
+
+Catatan kondisi tree awal sebelum demo:
+- `soal_2/server` tetap ada.
+- `soal_1/mnt` boleh tidak ada karena dibuat saat run.
+- `soal_2/encrypted_storage/tests` boleh tidak ada karena dibuat saat run.
+- file testing seperti `hello_world.py`, `test_ebook.txt`, dan sejenisnya tidak boleh tersisa.
