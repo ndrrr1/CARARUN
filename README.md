@@ -1,243 +1,502 @@
-# README — Panduan Rekaman Asistensi Modul 3
+# Panduan Demo Challenge Modul 3
+## Perintah, lokasi kerja, dan naskah bicara
 
-**Urutan wajib:** TypeScript manual → instal harness → AGENTS.md → priority → perbandingan dua harness. Wajib on cam dan tampilkan proses, termasuk error serta perbaikannya.
+Panduan ini memakai VS Code, terminal PowerShell di Windows, Codex CLI, dan Gemini CLI. Jalankan sendiri proses live coding saat rekaman. Contoh audit di bawah merupakan bahan latihan; ketik dan jelaskan perubahannya langsung. Struktur proyek task-tracker belum diberikan, sehingga nama file dan perintah aplikasi harus mengikuti proyek yang sebenarnya.
 
-## Mulai dari mana?
+## 0. Sebelum rekaman
 
-Gunakan **VS Code**. Siapkan Node.js 20+, npm, dan proyek `task-tracker` dari praktikum. Buat folder `modul3`, taruh `task-tracker` di dalamnya, lalu buka `modul3` lewat **File → Open Folder**.
+- Siapkan VS Code, Node.js versi LTS yang memenuhi Node.js 20+, dan proyek task-tracker dari modul sebelumnya.
+- Periksa versi Windows: dokumentasi Gemini CLI mencantumkan Windows 11 24H2+ sebagai lingkungan yang didukung. Pada Windows lama, periksa kompatibilitas sebelum hari demo.
+- Sediakan akses akun yang bisa dipakai untuk Codex dan Gemini CLI. Pemasangan CLI tidak otomatis menyediakan akses layanan/model.
+- Matikan bantuan penulisan kode AI di workspace audit-ts selama bagian manual.
+- Awali isi video dengan audit TypeScript. Tampilkan instalasi dan penggunaan harness setelah bagian audit selesai.
+- Buka VS Code > Terminal > New Terminal. Pilih PowerShell melalui panah di sebelah tombol +.
+- Perintah terminal dimasukkan di terminal biasa. Prompt agent dimasukkan setelah antarmuka codex atau gemini terbuka. Kode TypeScript dan isi AGENTS.md ditulis di editor.
+- Simpan tiap perubahan dengan Ctrl+S sebelum menjalankan pemeriksaan.
+- Buka terminal kedua lewat tombol + untuk npm/npx ketika terminal pertama sedang menjalankan agent. Periksa lokasinya dengan pwd.
 
-| Yang dikerjakan | Tempatnya |
-|---|---|
-| Perintah npm, npx, opencode, gemini | Terminal VS Code, bukan di file kode |
-| Menulis TypeScript atau AGENTS.md | Editor VS Code melalui panel Explorer |
-| Mengirim prompt AI | Chat OpenCode/Gemini setelah aplikasinya terbuka di terminal |
-| Membaca penjelasan | Ucapkan sambil menampilkan proses yang sesuai |
-
-**Membuka terminal:** klik kanan folder di Explorer VS Code → **Open in Integrated Terminal**. Untuk folder utama `modul3`, gunakan **Terminal → New Terminal**. Ketik perintah satu per satu, lalu Enter. Jika terminal sedang menampilkan chat harness, buka terminal kedua untuk menjalankan perintah biasa.
-
-Narasi sudah siap dibaca. Pilih variasi yang sesuai hasil percobaan. Angka dan path file tetap dicatat dari hasil nyata.
-
-**Pembuka:**
-
-> Pada video ini, saya mengerjakan Challenge Asistensi Modul 3. Saya mulai dengan audit TypeScript secara manual tanpa AI, kemudian melanjutkan penggunaan harness pada proyek task-tracker.
+Bicara:
+“Pada bagian pertama, saya akan mengaudit TypeScript secara manual. Saya memakai folder terpisah supaya percobaan ini tidak mengubah proyek task-tracker.”
 
 ## 1. Audit TypeScript manual
 
-**Tempat:** terminal di folder `modul3`. Matikan extension AI seperti Copilot/Gemini dan tutup chat AI selama bagian manual.
+### 1A. Buat folder terpisah
 
-```bash
+Di terminal PowerShell:
+
+```powershell
+cd $env:USERPROFILE
+mkdir demo-modul3
+cd demo-modul3
 mkdir audit-ts
 cd audit-ts
 npm init -y
-npm install --save-dev typescript @types/node tsx
+npm install typescript @types/node tsx --save-dev
 npx tsc --init
 mkdir src
+code .
 ```
 
-**Di editor:** buka `audit-ts/tsconfig.json`, pastikan `"strict": true`. Buat `audit-ts/src/audit.ts`, lalu tulis sendiri kode **5–15 baris** menggunakan `any` **atau** `as`. `as const` tidak dihitung. Kode dan perbaikannya wajib kamu susun sendiri sesuai aturan tugas.
+Jika folder induk sudah ada, cukup masuk dengan cd; jangan buat ulang. Jika code tidak dikenali, buka folder lewat VS Code > File > Open Folder. Folder audit-ts harus menjadi saudara atau terpisah dari task-tracker, bukan berada di dalam src task-tracker.
 
-**Di terminal `audit-ts`:**
+tsx dipasang sebagai development dependency agar npx tsx tidak meminta pemasangan mendadak saat demo.
 
-```bash
+Buka tsconfig.json. Pastikan properti ini ada di dalam compilerOptions:
+
+```json
+"strict": true,
+"types": ["node"]
+```
+
+Jika sudah ada "types": [], ubah nilainya, jangan buat properti types kedua. Pengaturan types membantu TypeScript mengenali API Node seperti console. Tidak perlu mengganti keseluruhan konfigurasi.
+
+Di Explorer VS Code, klik kanan src > New File > beri nama audit.ts.
+
+### 1B. Ketik contoh berbahaya, 6 baris
+
+Di src/audit.ts:
+
+```typescript
+function formatTitle(title: any): string {
+  return title.toUpperCase();
+}
+
+const taskTitle = 123;
+console.log(formatTitle(taskTitle));
+```
+
+Simpan. Di terminal yang lokasinya audit-ts, jalankan:
+
+```powershell
+npx tsc --noEmit
 npx tsx src/audit.ts
 ```
 
-Tunjukkan error atau hasil aneh. Perbaiki langsung menggunakan **union type, type guard, atau generics**, lalu jalankan:
-
-```bash
-npx tsx src/audit.ts
-npx tsc --noEmit
-```
-
-`tsx` menjalankan program; `tsc --noEmit` memeriksa tipe tanpa menghasilkan JavaScript. Pastikan program benar dan terminal kembali tanpa error tipe.
-
-**Narasi awal — pilih sesuai kode:**
-
-- **Any:** “Any membuat pemeriksaan tipe pada nilai ini dilewati. Operasi yang tidak sesuai dengan nilai sebenarnya bisa lolos pemeriksaan tipe dan baru bermasalah ketika dijalankan.”
-- **As:** “As meminta compiler memperlakukan nilai sebagai tipe tertentu, tetapi tidak mengubah atau memvalidasi nilainya saat program berjalan. Pernyataan tipe yang keliru tetap bisa menyebabkan masalah.”
-
-**Narasi perbaikan — pilih teknikmu:**
-
-- **Union type:** “Saya menggunakan union type supaya kemungkinan tipe nilainya dinyatakan dengan jelas. Sebelum menjalankan operasi khusus, saya memastikan tipe yang sedang digunakan.”
-- **Type guard:** “Saya memeriksa tipe sebelum nilai digunakan. Dengan begitu, operasi hanya dijalankan ketika tipe nilainya sesuai.”
-- **Generics:** “Saya menggunakan generics agar hubungan tipe antara masukan dan keluaran tetap terjaga. Informasi tipe tidak hilang seperti ketika menggunakan any.”
-
-**Setelah berhasil:**
-
-> Hasil program sekarang sesuai dan pemeriksaan tsc selesai tanpa error. Kode ini sudah lolos pemeriksaan tipe, tetapi perilaku program tetap perlu diuji.
-
-## 2. Instal dan kenali harness
-
-**Tempat:** klik kanan `task-tracker` → **Open in Integrated Terminal**. Bagian manual harus sudah selesai.
-
-```bash
-npm install -g opencode-ai
-npm install
-npx tsc --noEmit
-opencode
-```
-
-Pastikan pengecekan tipe awal bersih. Setelah OpenCode terbuka, ketik `/connect` di **chat OpenCode** dan hubungkan provider/model. Sembunyikan API key saat merekam.
-
-Jika sudah ada `AGENTS.md`, gunakan salinan proyek tanpa file itu untuk percobaan awal; simpan versi aslinya. Jangan jalankan `/init` dahulu.
-
-**Prompt A — tempel di chat OpenCode:**
+Pemeriksaan tipe dapat lolos, tetapi eksekusi menghasilkan error dengan inti pesan:
 
 ```text
-Jelaskan struktur task-tracker dan fungsi file utamanya. Baca package.json
-untuk menentukan perintah menjalankan CLI. Berikan rencana singkat menambah
-priority pada Task, tanpa mengubah kode. Sebutkan path file instruksi yang
-benar-benar kamu baca; jika tidak ada, nyatakan tidak ada.
+TypeError: title.toUpperCase is not a function
 ```
 
-Tampilkan hasil. Catat nama model, perintah CLI, dan path file instruksi; periksa bukti file atau informasi pemuatannya bila tersedia.
+Bicara:
+“Saya menggunakan any pada parameter title. Akibatnya, TypeScript mengizinkan pemanggilan toUpperCase meskipun nilai yang masuk berupa angka. Pemeriksaan tipe lolos, tetapi program gagal saat dijalankan karena angka tidak memiliki method toUpperCase. Jadi, strict tidak melarang any yang saya tulis secara eksplisit.”
 
-**Narasi:**
+### 1C. Tampilkan proses perbaikan
 
-> Saya menggunakan OpenCode sebagai harness untuk membantu agent membaca proyek, mengedit file, dan menjalankan perintah. Saya meminta penjelasan struktur proyek lebih dulu supaya perubahan dilakukan pada bagian yang tepat. Saya juga mencatat file instruksi yang dibaca dan perintah menjalankan proyek berdasarkan package.json.
+Pertama, ubah hanya any menjadi string | number:
 
-## 3. Bandingkan tanpa dan dengan AGENTS.md
+```typescript
+function formatTitle(title: string | number): string {
+  return title.toUpperCase();
+}
+```
 
-**Tempat:** editor VS Code. Simpan jawaban Prompt A. Buat `task-tracker/AGENTS.md`, sejajar dengan `package.json`, berisi:
+Jangan hapus pemanggilan fungsi di bawahnya. Simpan, lalu jalankan:
+
+```powershell
+npx tsc --noEmit
+```
+
+Compiler sekarang menolak pemanggilan toUpperCase pada nilai yang mungkin berupa number. Ini tahap sementara yang sengaja ditampilkan, bukan hasil akhir.
+
+Bicara:
+“Setelah saya membatasi parameter menjadi string atau number, compiler mulai menunjukkan operasi yang belum aman. Saya perlu membedakan cara menangani kedua tipe tersebut.”
+
+Lalu ubah seluruh isi src/audit.ts menjadi:
+
+```typescript
+function formatTitle(title: string | number): string {
+  if (typeof title === "string") {
+    return title.toUpperCase();
+  }
+  return String(title);
+}
+
+console.log(formatTitle(123));
+console.log(formatTitle("belajar typescript"));
+```
+
+Simpan, kemudian:
+
+```powershell
+npx tsx src/audit.ts
+npx tsc --noEmit
+$LASTEXITCODE
+```
+
+Output aplikasi:
+
+```text
+123
+BELAJAR TYPESCRIPT
+```
+
+tsc biasanya tidak menampilkan apa pun saat berhasil. $LASTEXITCODE sesudah tsc seharusnya 0.
+
+Bicara:
+“Saya memakai union type karena fungsi ini memang menerima string atau number. Pemeriksaan typeof menjadi type guard: pada cabang string, saya boleh menggunakan toUpperCase. Untuk angka, saya mengubahnya menjadi string secara eksplisit. Kedua contoh sekarang berjalan, dan pemeriksaan TypeScript selesai tanpa error.”
+
+Catatan konsep: tsx menjalankan kode, sedangkan tsc --noEmit memeriksa tipe tanpa menghasilkan file JavaScript. Keduanya perlu diperlihatkan. Lolos tsc tidak membuktikan seluruh perilaku program bebas bug.
+
+## 2. Instalasi dan pengenalan harness
+
+### 2A. Instal setelah bagian manual
+
+Di terminal biasa:
+
+```powershell
+npm install -g @openai/codex
+codex --version
+npm install -g @google/gemini-cli
+gemini --version
+```
+
+Catat versi yang benar-benar muncul. Jika PowerShell memblokir npm.ps1, gunakan npm.cmd; jika npx.ps1 terblokir, gunakan npx.cmd. Launcher npm lain seperti gemini juga dapat dipanggil sebagai gemini.cmd bila tersedia. Tidak perlu mengubah execution policy.
+
+Bicara:
+“Sekarang saya beralih ke harness. Harness adalah aplikasi yang menghubungkan model AI dengan file proyek dan alat seperti terminal, sehingga agent dapat membaca kode, mengeditnya, dan menjalankan pemeriksaan.”
+
+### 2B. Buka task-tracker yang sudah ada
+
+Di VS Code pilih File > Open Folder > folder task-tracker. Pilih folder yang berisi package.json. Jangan menjalankan npm init di proyek yang sudah ada.
+
+Buka terminal baru dan jalankan:
+
+```powershell
+pwd
+npm install
+npm run
+npx tsc --noEmit
+```
+
+npm run menampilkan script yang tersedia. Gunakan package manager proyek jika ternyata proyek memakai pnpm/yarn; contoh panduan ini mengasumsikan npm. Selesaikan error bawaan proyek terlebih dahulu agar perubahan berikutnya memiliki titik awal yang bersih.
+
+Jalankan:
+
+```powershell
+codex
+```
+
+Ikuti opsi Sign in with ChatGPT atau metode login yang tersedia untuk akunmu. Pilih izin yang sesuai folder kerja melalui tampilan harness. Tampilkan proses agent saat membaca file, menjalankan perintah, dan mengajukan perubahan.
+
+Ketik prompt berikut di Codex:
+
+```text
+Jelaskan struktur proyek ini tanpa mengubah file.
+Temukan definisi Task, lokasi pembuatan Task, penyimpanan data,
+pemrosesan argumen CLI, serta script menjalankan aplikasi.
+Sebutkan file instruksi yang aktif atau benar-benar kamu baca beserta path-nya.
+Bedakan file instruksi agent dari file sumber dan dokumentasi biasa.
+Jika tidak bisa memastikan suatu sumber instruksi, jelaskan keterbatasannya.
+Tuliskan perintah konkret untuk menjalankan fitur CLI proyek ini.
+```
+
+Catat hasilnya:
+
+| Hal | Hasil nyata |
+|---|---|
+| File definisi Task | ... |
+| File pembuat Task | ... |
+| File parser/perintah CLI | ... |
+| Lokasi penyimpanan data | ... |
+| Script menjalankan aplikasi | ... |
+| File instruksi agent dan path | ... |
+| Versi CLI dan model aktif | ... |
+
+Bicara:
+“Saya menjalankan harness dari root task-tracker agar agent bekerja pada proyek yang benar. Saya meminta pemetaan struktur terlebih dahulu supaya bisa menilai apakah agent memahami alur aplikasi dan file instruksi yang digunakannya.”
+
+## 3. Perbandingan dengan dan tanpa AGENTS.md
+
+Lakukan dua percobaan memakai Codex, model yang sama, dan prompt yang sama. Kedua percobaan hanya meminta rencana, sehingga kode sumber tetap sama.
+
+Jika AGENTS.md proyek belum ada, lanjutkan langsung. Jika sudah ada, lakukan percobaan di salinan proyek; pindahkan sementara file instruksi proyek keluar dari salinan sebelum percobaan “tanpa”, lalu kembalikan untuk percobaan “dengan”. Jangan menghapus instruksi asli. Catat instruksi global atau file instruksi lain yang tetap aktif; “tanpa” di sini berarti tanpa AGENTS.md proyek yang sedang diuji.
+
+### 3A. Tanpa AGENTS.md proyek
+
+Mulai sesi Codex baru. Ketik prompt ini dan simpan hasilnya:
+
+```text
+Buat rencana menambahkan priority pada Task dengan nilai low, medium, atau high.
+Jangan ubah file dulu. Sebutkan file yang perlu diubah,
+keputusan implementasi, dan cara memverifikasinya.
+```
+
+Simpan jawaban di catatan di luar root proyek, atau ambil tangkapan layar.
+
+### 3B. Buat AGENTS.md di root proyek
+
+Di Explorer VS Code, buat AGENTS.md sejajar dengan package.json. Isinya:
 
 ```markdown
-# Instruksi Proyek
-- Jawab dalam bahasa Indonesia.
-- Susun jawaban menjadi: Rencana, File Terkait, dan Validasi.
-- Ikuti struktur proyek; hindari any/as untuk menutupi error.
-- Pertahankan perilaku perintah yang sudah ada.
-- Setelah mengubah kode, jalankan npx tsc --noEmit.
+# Instruksi proyek task-tracker
+
+- Gunakan bahasa Indonesia.
+- Mulai respons perencanaan dengan urutan: Rencana, File terdampak, Verifikasi.
+- Ikuti struktur dan gaya kode proyek yang sudah ada.
+- Pertahankan strict TypeScript.
+- Jangan gunakan any, @ts-ignore, atau type assertion untuk menutupi error.
+- Hindari dependency baru jika fitur dapat dibuat dengan kode yang sudah tersedia.
+- Priority Task wajib bernilai low, medium, atau high.
+- Gunakan medium sebagai default untuk task baru tanpa input priority.
+- Jika ada data lama tanpa priority, tangani pada batas pembacaan data.
+- Jangan mengarang nama file atau hasil pengujian.
+- Setelah implementasi, jalankan npx tsc --noEmit dan uji perilaku yang diubah.
+- Pada checkpoint demo yang diminta pengguna, berhenti agar hasil bisa direkam.
 ```
 
-Gabungkan dengan instruksi asli jika sebelumnya sudah ada. Mulai **sesi OpenCode baru** di folder yang sama: tutup terminal harness, buka terminal baru di `task-tracker`, lalu jalankan `opencode`. Pakai model dan kode yang sama, kemudian kirim **Prompt A persis sama**. Tampilkan kedua jawaban. Catat jika percobaan pertama masih memakai instruksi global/folder induk.
+Aturan default medium adalah keputusan untuk demo ini, bukan syarat tambahan dari soal.
 
-**Narasi pembuka:**
+Tutup sesi Codex setelah respons selesai, misalnya dengan Ctrl+C mengikuti petunjuk CLI, lalu jalankan codex lagi. Tidak cukup hanya mengganti teks prompt pada percakapan lama karena konteks percakapan dapat memengaruhi hasil.
 
-> AGENTS.md berisi arahan kerja untuk agent. Saya memberikan prompt yang sama pada dua sesi dengan kode dan model yang sama untuk membandingkan pengaruh tambahan instruksi ini.
+Kirim prompt yang SAMA PERSIS dengan percobaan sebelumnya. Setelah respons, tanyakan file instruksi aktif untuk membantu pencatatan.
 
-**Jika hasil mengikuti format baru:**
+Bandingkan:
 
-> Setelah AGENTS.md ditambahkan, jawaban mengikuti pembagian Rencana, File Terkait, dan Validasi. Perbedaannya terlihat pada format dan arahan pemeriksaan kode. File ini membantu menyampaikan aturan proyek secara konsisten.
+| Aspek | Tanpa AGENTS.md proyek | Dengan AGENTS.md proyek |
+|---|---|---|
+| Format rencana | Isi hasil | Isi hasil |
+| Default priority | Disebut atau tidak | Sesuai medium atau tidak |
+| Data lama | Dibahas atau tidak | Dibahas atau tidak |
+| Type safety | Isi hasil | Isi hasil |
+| Verifikasi | Isi hasil | Isi hasil |
 
-**Jika hasil hampir sama:**
+Bicara:
+“Permintaan dan kode awal saya buat sama. Yang saya ubah adalah konteks proyek melalui AGENTS.md. Saya membandingkan format rencana, keputusan default priority, penanganan data lama, dan rencana verifikasinya. Dari hasil yang tampil, perbedaan yang saya temukan adalah ...”
 
-> Pada percobaan ini, kedua jawaban masih cukup mirip. Saya belum melihat perubahan besar dari penambahan AGENTS.md. Namun, aturan proyek sekarang sudah tertulis dan dapat digunakan kembali oleh agent.
+Lengkapi kalimat terakhir berdasarkan bukti. Jika hasil hampir sama, katakan demikian; tidak perlu memaksakan perbedaan.
 
-## 4. Tambahkan priority
+## 4. Tambahkan priority dan biarkan compiler memandu perbaikan
 
-**Tempat:** chat OpenCode pada proyek `task-tracker`.
+### 4A. Ubah hanya definisi Task
 
-**Prompt pertama:**
+Gunakan Ctrl+Shift+F untuk mencari interface Task atau type Task. Ikuti file hasil pemetaan harness.
+
+Tambahkan hanya baris ini di dalam tipe yang sudah ada:
+
+```typescript
+priority: "low" | "medium" | "high";
+```
+
+Pertahankan seluruh field lama. Jangan menambahkan tanda ? karena priority diminta sebagai field wajib. Jangan dulu memperbaiki object pembuat Task.
+
+Simpan, lalu di terminal biasa pada task-tracker:
+
+```powershell
+npx tsc --noEmit
+```
+
+Rekam seluruh daftar error yang benar-benar muncul. Pesannya dapat berbunyi bahwa property priority hilang pada object tertentu; jumlah dan lokasi tergantung proyek.
+
+Bicara:
+“Saya menambahkan priority sebagai field wajib dengan tiga pilihan nilai. Saya belum memperbaiki tempat pembuatan Task. Sekarang compiler menunjukkan bagian bertipe yang belum memenuhi definisi baru.”
+
+Jika tidak ada error, jangan mengklaim seluruh alur sudah benar. Periksa apakah file masuk cakupan tsconfig, apakah tipe Task benar-benar dipakai, atau apakah any/type assertion/JSON.parse melewati pemeriksaan. Compiler tidak memvalidasi isi file JSON pada runtime secara otomatis.
+
+### 4B. Minta agent memperbaiki error
+
+Di Codex:
 
 ```text
-Tambahkan hanya field wajib priority: "low" | "medium" | "high" pada
-Task. Jangan jadikan opsional. Jangan perbaiki pemakaiannya dulu.
-Jalankan npx tsc --noEmit, tampilkan seluruh error, lalu berhenti.
+Saya sudah menambahkan field wajib priority: "low" | "medium" | "high" pada Task.
+Jalankan npx tsc --noEmit dan jelaskan seluruh error yang ditemukan.
+Perbaiki pemakaian Task yang terdampak, termasuk pembuatan object dan fixture
+yang relevan. Gunakan medium sebagai default ketika priority tidak diberikan.
+Jika ada penyimpanan data lama, tangani data tanpa priority saat dibaca dan
+validasi nilai eksternal, bukan sekadar memaksa tipenya.
+Jangan menjadikan priority optional, menonaktifkan strict, atau menutupi
+masalah dengan any, @ts-ignore, atau type assertion.
+Tunjukkan perubahan file dan jalankan npx tsc --noEmit kembali hingga lulus.
+Verifikasi perilaku terkait priority. Jangan kerjakan filter list --status dulu.
 ```
 
-Tampilkan perubahan dan **semua error compiler**, lalu catat jumlahnya. Jika tidak ada error, periksa tipe Task yang diedit dan cakupan file pemeriksaan compiler.
+Tampilkan operasi agent dan perubahan file langsung. Gunakan panel Source Control bila proyek memakai Git, atau buka file yang diubah agent.
 
-**Narasi saat error muncul:**
+Setelah agent selesai, periksa sendiri:
 
-> Priority wajib bernilai low, medium, atau high. Bagian kode yang belum memenuhi definisi Task sekarang ditandai oleh compiler. Error tersebut membantu menunjukkan bagian yang perlu diperbaiki.
+```powershell
+npx tsc --noEmit
+$LASTEXITCODE
+```
 
-**Prompt kedua — masih di chat OpenCode:**
+Jalankan aplikasi dengan perintah yang sesuai package.json. Buat/lihat task untuk memastikan default priority benar. Jika proyek membaca JSON, periksa pula data lama tanpa priority.
+
+Bicara:
+“Agent memperbaiki lokasi yang terdampak perubahan tipe. Saya mengecek hasilnya lewat compiler dan perilaku aplikasi. Field priority tetap wajib, dan nilai default ditangani di tempat pembuatan atau pembacaan data yang sesuai.”
+
+## 5. Bandingkan dua harness pada list --status done
+
+### 5A. Buat titik awal yang sama
+
+Selesaikan priority terlebih dahulu. Pastikan fitur filter belum dikerjakan pada titik awal ini.
+
+Sebelum menyalin, siapkan data contoh memakai command proyek yang sudah ada:
+- minimal satu task dengan status done;
+- minimal satu task dengan status lain yang valid.
+
+Nama command add/update/done mengikuti proyek. Jika belum diketahui, minta Codex menjelaskan command yang sudah ada, tanpa mengimplementasikan filter.
+
+Buat GEMINI.md di root task-tracker, berisi:
+
+```markdown
+@./AGENTS.md
+```
+
+Gemini CLI memakai GEMINI.md secara default; impor tersebut memberikan aturan proyek yang sama dengan yang digunakan Codex.
+
+Tutup sesi agent, simpan semua file, lalu lewat File Explorer salin folder task-tracker menjadi dua folder saudara:
+- task-tracker-codex
+- task-tracker-gemini
+
+Kedua salinan dibuat SEBELUM salah satu agent mengerjakan filter. Jangan menyalin hasil Codex untuk dijadikan titik awal Gemini. Sertakan kode, package.json, lockfile, AGENTS.md, GEMINI.md, konfigurasi, dan data contoh yang sama. node_modules boleh tidak disalin; instal ulang di masing-masing salinan.
+
+Jika penyimpanan data memakai path absolut atau database bersama, pastikan pengujian list tidak mengubah dataset bersama; jangan mengaku datanya terisolasi hanya karena folder kode disalin.
+
+Bicara:
+“Saya membuat dua salinan dari kondisi awal yang sama. Keduanya menerima fitur, aturan proyek, data contoh, dan urutan prompt yang sama. Saya juga mencatat model aktif karena hasil dipengaruhi model, bukan hanya harness.”
+
+### 5B. Jalankan Codex pada salinan pertama
+
+VS Code > File > Open Folder > task-tracker-codex.
+Terminal biasa:
+
+```powershell
+npm ci
+npx tsc --noEmit
+codex
+```
+
+Gunakan npm install jika proyek tidak memiliki package-lock.json. Jika npm ci mengeluhkan lockfile yang tidak cocok, perbaiki titik awal dan gunakan lockfile hasil perbaikan yang sama di kedua salinan.
+
+Prompt perencanaan:
 
 ```text
-Perbaiki seluruh error akibat priority, termasuk pembuatan task, data,
-penyimpanan, dan tampilan yang relevan. Default priority adalah medium,
-termasuk untuk data lama. Pertahankan field wajib; jangan menutupi error
-menggunakan any/as atau mematikan strict. Jalankan npx tsc --noEmit sampai
-bersih. Tunjukkan perintah membuat dan menampilkan task dengan priority.
+Baca instruksi proyek yang aktif.
+Buat rencana menambahkan filter list --status done.
+Tanpa --status, list harus tetap menampilkan semua task.
+Dengan --status done, hanya task berstatus done yang ditampilkan.
+Status tidak valid atau --status tanpa nilai harus menghasilkan pesan yang jelas
+dan exit code bukan nol. Hasil kosong harus ditangani dengan jelas.
+Ikuti struktur CLI proyek, jangan mengubah data ketika menjalankan list,
+dan jangan menambah dependency tanpa kebutuhan.
+Sebutkan file terdampak dan cara menguji.
+Berhenti setelah rencana; jangan mengedit file dulu.
 ```
 
-Rekam edit agent dan tampilkan diff. **Buka terminal kedua di `task-tracker`**, jalankan `npx tsc --noEmit`, lalu perintah pengujian yang ditemukan agent.
+Catat kualitas rencana. Kemudian kirim:
 
-**Setelah berhasil:**
-
-> Agent telah menyesuaikan kode yang terdampak penambahan priority. Pemeriksaan TypeScript sekarang selesai tanpa error. Saya juga mencoba membuat dan menampilkan task untuk memastikan priority bekerja saat program dijalankan.
-
-## 5. Bandingkan OpenCode dan Gemini CLI
-
-**Di File Explorer komputer:** setelah poin 4, salin `task-tracker` menjadi `task-tracker-opencode` dan `task-tracker-gemini` di dalam `modul3`. Kode, data awal, dan AGENTS.md harus identik; keduanya belum memiliki filter baru.
-
-**Terminal pada folder `task-tracker-opencode`:**
-
-```bash
-npm install
-opencode
+```text
+Implementasikan rencana tersebut.
+Setelah implementasi pertama selesai, jalankan npx tsc --noEmit.
+Tampilkan output dan jumlah diagnostic TypeScript yang muncul.
+Berhenti di checkpoint ini sebelum memperbaiki error hasil pemeriksaan,
+supaya saya bisa mencatat kondisi implementasi pertama.
 ```
 
-**Terminal lain pada folder `task-tracker-gemini`:**
+Di terminal kedua, verifikasi:
 
-```bash
-npm install -g @google/gemini-cli
-npm install
+```powershell
+npx tsc --noEmit
+```
+
+Catat error pemeriksaan pertama meskipun jumlahnya nol. Sesudah dicatat, kirim:
+
+```text
+Lanjutkan dari checkpoint. Perbaiki error yang ditemukan jika ada,
+lalu jalankan npx tsc --noEmit dan uji semua kriteria fitur.
+Tampilkan command, hasil, file yang diubah, dan sisa masalah.
+```
+
+Jika perlu arahan korektif tambahan di luar tiga prompt terjadwal ini, catat sebagai intervensi manual.
+
+### 5C. Jalankan Gemini pada salinan kedua
+
+VS Code > File > Open Folder > task-tracker-gemini.
+Terminal biasa:
+
+```powershell
+npm ci
+npx tsc --noEmit
 gemini
 ```
 
-Ikuti autentikasi. Mulai sesi baru pada kedua harness dan catat model masing-masing.
-
-**Prompt yang sama — tempel di chat masing-masing harness:**
+Login melalui opsi Sign in with Google yang sesuai akunmu. Setelah antarmuka Gemini terbuka, periksa konteks:
 
 ```text
-Baca AGENTS.md terlebih dahulu dan ikuti instruksinya. Tambahkan fitur
-list --status done agar hanya menampilkan task dengan status done.
-Tanpa --status, list harus tetap menampilkan semua task.
-Tampilkan rencana singkat, lalu implementasikan. Jalankan npx tsc --noEmit
-setelah implementasi pertama dan tampilkan hasil sebelum perbaikan.
-Jika ada error, perbaiki lalu jalankan lagi sampai bersih.
-Tunjukkan perintah pengujian berdasarkan CLI proyek ini.
+/memory show
 ```
 
-**Narasi proses:**
+Pastikan isi AGENTS.md dari impor GEMINI.md terlihat. Jika tidak, periksa letak file dan mulai sesi baru. Catat file instruksi global lain yang ikut termuat.
 
-> Saya memakai dua salinan proyek dengan kondisi awal dan prompt yang sama. Saya membandingkan kejelasan rencana, jumlah error TypeScript, koreksi manual yang diperlukan, serta kenyamanan penggunaannya. Fitur yang dibuat adalah filter agar list hanya menampilkan task berstatus done.
+Kirim tiga prompt yang SAMA PERSIS dan dalam urutan yang sama seperti percobaan Codex: perencanaan, implementasi pertama dengan checkpoint, lalu penyelesaian. Catat hasilnya secara terpisah.
 
-**Pengujian:** buka terminal biasa di masing-masing salinan. Siapkan task `done` dan berstatus lain. Jalankan CLI dengan argumen `list`, lalu `list --status done`, serta pemeriksaan tipe.
+### 5D. Perintah uji fitur
 
-Contoh **hanya jika** script `dev` di proyek menjalankan CLI:
+Perintah aplikasi ditentukan oleh package.json, bukan oleh nama harness.
 
-```bash
+Jika script dev menjalankan CLI, misalnya "dev": "tsx src/index.ts", gunakan:
+
+```powershell
 npm run dev -- list
 npm run dev -- list --status done
+npm run dev -- list --status tidak-valid
+$LASTEXITCODE
+npm run dev -- list --status
+$LASTEXITCODE
 npx tsc --noEmit
 ```
 
-Jika script berbeda, gunakan perintah dari agent. `list` harus menampilkan semua task; filter hanya menampilkan task `done`.
+Jika script start menjalankan CLI, pakai npm start -- list --status done.
+Jika tanpa script dan file entry point-nya src/cli.ts, pakai npx tsx src/cli.ts list --status done.
+Jangan memakai contoh npm run dev bila script dev sebenarnya menjalankan server frontend.
 
-**Isi tabel dari rekaman:**
+Periksa:
+1. list tanpa opsi menampilkan semua task.
+2. list --status done hanya menampilkan task done.
+3. Status tidak valid ditolak dengan pesan jelas dan exit code bukan nol.
+4. --status tanpa nilai ditolak dengan jelas.
+5. Ketika tidak ada task done, hasil kosong disampaikan dengan benar.
+6. Menjalankan list tidak mengubah data.
+7. npx tsc --noEmit akhirnya lulus.
 
-| Aspek | OpenCode | Gemini CLI |
+Untuk kasus kosong, gunakan fixture atau data uji terpisah yang didukung proyek. Jangan menghapus data utama demi pengujian.
+
+Bicara:
+“Saya mengecek hasil compiler dan fungsi filternya. Compiler yang bersih belum menjamin logika filter benar, jadi saya juga menjalankan command dengan status done, status tidak valid, dan tanpa opsi.”
+
+## 6. Tabel penilaian
+
+Isi berdasarkan demo, bukan perkiraan.
+
+| Aspek | Codex CLI | Gemini CLI |
 |---|---|---|
-| Model | — | — |
-| Rencana: kejelasan, ketepatan file, validasi | — | — |
-| Error tsc pertama → terakhir | — | — |
-| Jumlah koreksi prompt/edit manual | — | — |
-| Kenyamanan alur kerja | — | — |
+| Versi CLI | ... | ... |
+| Model aktif / mode auto | ... | ... |
+| Error tsc pada baseline | ... | ... |
+| Kualitas rencana, skor 1–5 | ... | ... |
+| Alasan skor rencana | ... | ... |
+| Error tsc sesudah implementasi pertama | ... | ... |
+| Error tsc pada hasil akhir | ... | ... |
+| Intervensi manual di luar alur terjadwal | ... | ... |
+| Rincian intervensi | ... | ... |
+| Kenyamanan alur kerja, skor 1–5 | ... | ... |
+| Alasan skor kenyamanan | ... | ... |
+| Hasil uji perilaku filter | ... | ... |
 
-**Kesimpulan siap baca — pilih SATU yang sesuai tabel, setelah kedua fitur berhasil. Jika hasil berbeda, sesuaikan kalimatnya.**
+Definisi sederhana:
+- Error tsc dihitung sebagai jumlah diagnostic error, bukan jumlah baris output atau jumlah file.
+- Satu intervensi manual adalah satu arahan korektif tambahan atau satu tindakan edit kode manual. Pilih definisi ini dan pakai konsisten.
+- Prompt awal, tiga tahap terjadwal, dan klik persetujuan normal tidak dihitung sebagai intervensi korektif. Catat persetujuan terpisah bila memengaruhi kenyamanan.
+- Rencana dinilai dari ketepatan file, parsing argumen, validasi status, kompatibilitas list lama, dan verifikasi.
+- Kenyamanan dinilai dari kemudahan membaca rencana, meninjau diff, memberi persetujuan, dan melanjutkan dari error.
+- Catat model dan versi; satu percobaan tidak membuktikan harness tertentu selalu unggul.
 
-**Jika OpenCode lebih jelas, error/intervensinya tidak lebih banyak, dan lebih nyaman:**
+## 7. Naskah kesimpulan satu paragraf
 
-> Dalam percobaan ini, saya lebih nyaman menggunakan OpenCode karena rencananya lebih mudah diikuti, dengan jumlah error dan intervensi manual yang tidak lebih banyak daripada Gemini CLI. Kedua harness berhasil membuat filter list --status done dan lolos pemeriksaan TypeScript pada hasil akhirnya. OpenCode lebih sesuai untuk alur kerja saya pada percobaan ini, dengan model dan pengaturan yang saya gunakan.
+Ganti semua bagian dalam kurung siku menggunakan hasil nyata:
 
-**Jika Gemini CLI lebih jelas, error/intervensinya tidak lebih banyak, dan lebih nyaman:**
+“Pada percobaan fitur list --status done, Codex CLI menghasilkan rencana yang [temuan], sedangkan Gemini CLI [temuan]. Setelah implementasi pertama, pemeriksaan TypeScript menunjukkan [jumlah] error pada Codex dan [jumlah] error pada Gemini; hasil akhirnya masing-masing [jumlah] dan [jumlah] error. Saya memberikan [jumlah] intervensi tambahan pada Codex dan [jumlah] pada Gemini. Dari sisi alur kerja, saya lebih nyaman menggunakan [nama harness] karena [alasan konkret]. Kesimpulan ini berlaku untuk proyek, model, versi, dan percobaan yang saya gunakan.”
 
-> Dalam percobaan ini, saya lebih nyaman menggunakan Gemini CLI karena rencananya lebih mudah diikuti, dengan jumlah error dan intervensi manual yang tidak lebih banyak daripada OpenCode. Kedua harness berhasil membuat filter list --status done dan lolos pemeriksaan TypeScript pada hasil akhirnya. Gemini CLI lebih sesuai untuk alur kerja saya pada percobaan ini, dengan model dan pengaturan yang saya gunakan.
+Jika keduanya sama-sama bagus, sampaikan hasil setara dengan alasan yang terlihat.
 
-**Jika seluruh aspek sebanding:**
 
-> Dalam percobaan ini, kedua harness menghasilkan rencana yang dapat diikuti, dengan jumlah error dan intervensi manual yang relatif serupa. Filter list --status done berhasil dibuat dan hasil akhirnya lolos pemeriksaan TypeScript. Saya tidak menemukan perbedaan besar dalam kenyamanan alur kerjanya, sehingga belum ada satu harness yang jelas lebih unggul pada konfigurasi ini.
-
-## Sebelum mengumpulkan
-
-- [ ] Poin 1–5 berurutan; bagian manual tanpa AI.
-- [ ] Wajah, proses mengetik/edit, error, perbaikan, dan hasil akhir terlihat.
-- [ ] File instruksi tercatat; perbandingan AGENTS.md ditampilkan.
-- [ ] Tabel dua harness terisi dan kesimpulan satu paragraf dibacakan.
-- [ ] Upload ke YouTube: `NamaKelompok_Asistensi_Modul3_NamaAsisten`.
-- [ ] Cek link lewat incognito, pastikan bisa dibuka.
-- [ ] Isi data dan kirim link melalui [Form Pengumpulan](https://forms.gle/qpKhndCBiz3BCx8P8).
-
-Referensi instalasi: [OpenCode](https://docs.opencode.ai/docs/) · [Gemini CLI](https://geminicli.com/docs/get-started/installation/).
