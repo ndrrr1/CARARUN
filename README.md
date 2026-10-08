@@ -1,1074 +1,487 @@
-# README - Cara Run Persis Alur Soal Praktikum 4
+# CHALLENGE MODUL 3 — PANDUAN DARI NOL + CARA RESET SEBELUM REKAMAN
 
-README ini dibuat agar cara run dan hasil yang ditampilkan mengikuti contoh pada soal.
+**Untuk Windows, VS Code, dan Git Bash.** Panduan ini memakai folder **`modul3`** (bukan `modul13`). Kamu boleh mencoba tiap tugas dulu, mengembalikan kondisinya, lalu merekam tugas itu dari awal **tanpa harus mengulang tugas lain**.
 
-Jalankan dari folder utama repository yang berisi:
+## Cara membaca panduan
 
-```text
-soal_1  soal_2  soal_3
-```
+- **📍 GIT BASH** = ketik perintah di jendela Git Bash atau terminal Git Bash di VS Code, lalu tekan **Enter**. Jangan mengetik tanda `$`.
+- **📍 VS CODE (EDITOR)** = klik/buat file di panel kiri VS Code, lalu ketik kodenya di area editor. Simpan dengan **Ctrl+S**.
+- **📍 CODEX / CLAUDE (CHAT AGENT)** = ketik instruksi setelah perintah `codex` atau `claude` membuka antarmuka agent. **Bukan** perintah terminal biasa.
+- **🎤 NARASI VIDEO** = contoh penjelasan singkat yang boleh kamu ucapkan saat merekam. Sesuaikan dengan hasil nyata di laptop.
+- **🔁 RESET** = lakukan **setelah latihan dan sebelum mulai rekam nomor tersebut**. Backup jangan ikut dihapus.
 
-Contoh:
-
-```bash
-cd ~/"Modul 4"
-```
-
-File bahan tambahan yang dipakai saat run disimpan di `~/Downloads`:
-
-```text
-amba_files.zip
-notes.csv.enc
-```
-
-File `server` untuk Soal 2 sudah berada di dalam repository:
-
-```text
-soal_2/server
-```
-
-Cek dulu dari root repository:
-
-```bash
-ls ~/Downloads/amba_files.zip
-ls ~/Downloads/notes.csv.enc
-ls soal_2/server
-```
+> **Aturan penting:** Video **wajib dimulai dengan Tugas 1 (coding TypeScript manual)**, tanpa harness/AI. Baca dan latih dulu menggunakan panduan ini. Saat merekam Tugas 1, tutup AI dan **ketik kode sendiri** (jangan copy–paste).
 
 ---
 
-# Requirement Awal
+# 0. PERSIAPAN — MULAI DARI NOL
+
+### 0.1 Buka VS Code dan terminal
+
+1. Buka **Visual Studio Code**.
+2. Pilih **Terminal → New Terminal**.
+3. Jika terminalnya PowerShell (`PS C:\...>`), kamu tetap bisa membuka aplikasi **Git Bash** dari Start Menu; atau di terminal VS Code pilih panah kecil di sebelah `+` → **Select Default Profile → Git Bash**, lalu buka terminal baru.
+4. Seluruh perintah bertanda **GIT BASH** diketik di terminal Git Bash.
+
+### 0.2 Cek aplikasi
+
+📍 **GIT BASH — boleh dari folder mana saja:**
 
 ```bash
-sudo apt update
+node -v
+npm -v
+git --version
 ```
+
+**Hasil:** Masing-masing menampilkan nomor versi. Kalau `node`/`npm` tidak ditemukan, instal **Node.js LTS** dari https://nodejs.org/ dan buka ulang terminal. Kalau `git` tidak ditemukan, instal Git for Windows dari https://git-scm.com/downloads.
+
+### 0.3 Buat folder `modul3`
+
+📍 **GIT BASH — ketik satu per satu:**
 
 ```bash
-sudo apt install -y gcc pkg-config libfuse3-dev fuse3
+cd ~
+mkdir -p modul3
+cd modul3
+pwd
 ```
 
-```bash
-sudo apt install -y docker.io smbclient cifs-utils tree zip unzip curl xxd
-```
+**Artinya:** `cd ~` menuju folder pengguna Windows, `mkdir -p modul3` membuat folder (kalau sudah ada tidak masalah), `cd modul3` masuk ke sana, dan `pwd` menunjukkan lokasi aktif. Hasilnya kurang lebih `/c/Users/NAMAKAMU/modul3`.
 
-```bash
-sudo systemctl enable --now docker
-```
+📍 **VS CODE:** **File → Open Folder → pilih folder `modul3`** yang tadi dibuat. Lalu buka terminal baru. Jangan buat `modul13` lagi.
 
-```bash
-sudo modprobe fuse
-```
-
-```bash
-sudo sed -i 's/^#user_allow_other/user_allow_other/' /etc/fuse.conf
-```
-
-```bash
-grep -q '^user_allow_other' /etc/fuse.conf || echo 'user_allow_other' | sudo tee -a /etc/fuse.conf
-```
-
-Penjelasan: requirement ini menyiapkan compiler C, FUSE3, Docker, Samba client, dan tools testing.
+🎤 **NARASI:** “Saya menyiapkan folder modul3 dan mengecek Node.js, npm, serta Git sebelum membuat proyek latihan.”
 
 ---
 
-# Soal 1 - Save Asisten Kenz
+# 1. AUDIT TYPESCRIPT MANUAL — WAJIB PERTAMA DI VIDEO
 
-Target Soal 1:
-- unzip `amba_files.zip`;
-- setelah unzip, file ZIP tidak boleh tersisa di working directory;
-- hasil unzip berupa folder `amba_files/` berisi `1.txt` sampai `7.txt`;
-- program `kenz_rescue.c` menerima argumen `<source_directory>` dan `<mount_directory>`;
-- file `1.txt` sampai `7.txt` muncul di mount point dan isinya sama persis dengan source;
-- file virtual `tujuan.txt` hanya muncul di mount point, bukan di `amba_files/`;
-- isi `tujuan.txt` dibuat on-the-fly dari fragmen `KOORD:`.
+**Tujuan:** Tunjukkan risiko `any`, munculkan runtime error, perbaiki dengan **Union Type + Type Guard**, lalu jalankan `npx tsc --noEmit` sampai tidak ada error.
 
-## A. Persiapan Soal 1
+### 1.1 Buat folder latihan TypeScript
+
+📍 **GIT BASH — pastikan sedang di `modul3` (`pwd`), bukan di task-tracker:**
 
 ```bash
-cd soal_1
+mkdir audit-ts
+cd audit-ts
+npm init -y
+npm install typescript @types/node --save-dev
+npx tsc --init
+npm install tsx --save-dev
+mkdir src
 ```
 
-```bash
-fusermount3 -u mnt 2>/dev/null || fusermount -u mnt 2>/dev/null || true
+**Penjelasan:** `audit-ts` adalah proyek latihan terpisah. `npm init -y` membuat `package.json`; `npm install` memasang alat; `tsc --init` membuat `tsconfig.json`; dan `src` adalah folder kode.
+
+📍 **VS CODE (EDITOR):** Di Explorer kiri, buka `audit-ts/tsconfig.json`. Cari `"strict"` dan pastikan ada:
+
+```json
+"strict": true
 ```
 
-```bash
-rm -rf amba_files mnt kenz_rescue fuse.log amba_files.zip
+Lalu klik kanan folder `src` → **New File** → beri nama **`audit.ts`**.
+
+🎤 **NARASI:** “Saya membuat proyek audit-ts terpisah dari task-tracker dan mengaktifkan strict mode agar pemeriksaan TypeScript lebih ketat.”
+
+### 1.2 Ketik kode bermasalah (MANUAL)
+
+📍 **VS CODE (EDITOR) → `modul3/audit-ts/src/audit.ts`**. **Ketik sendiri**, jangan paste saat rekaman:
+
+```typescript
+function tampilkanNama(nama: any) {
+  console.log("Nama: " + nama.toUpperCase());
+}
+
+const data1 = "azmi";
+const data2 = 123;
+
+tampilkanNama(data1);
+tampilkanNama(data2);
 ```
 
-```bash
-cp ~/Downloads/amba_files.zip .
-```
+**Penjelasan:** `any` membiarkan berbagai jenis data masuk. `toUpperCase()` hanya berlaku untuk string, tetapi kita juga mengirim angka `123`.
+
+📍 **GIT BASH — harus berada di `modul3/audit-ts`:**
 
 ```bash
-unzip amba_files.zip
+npx tsx src/audit.ts
 ```
 
-```bash
-rm -f amba_files.zip
+**Hasil yang diharapkan:** Muncul `Nama: AZMI`, kemudian `TypeError: nama.toUpperCase is not a function`. Ini **runtime error** (bukan error instalasi).
+
+🎤 **NARASI:** “Saat parameter memakai any, TypeScript tidak mencegah angka masuk ke operasi string. Hasilnya, program gagal ketika mencoba menjalankan toUpperCase pada angka.”
+
+### 1.3 Perbaiki dengan Union Type dan Type Guard (MANUAL)
+
+📍 **VS CODE (EDITOR) → file `src/audit.ts` yang sama**. Ganti isinya, **ketik sendiri**:
+
+```typescript
+function tampilkanNama(nama: string | number) {
+  if (typeof nama === "string") {
+    console.log("Nama: " + nama.toUpperCase());
+  } else {
+    console.log("Nama: " + nama.toString());
+  }
+}
+
+tampilkanNama("azmi");
+tampilkanNama(123);
 ```
 
-```bash
-mkdir -p mnt
-```
+**Penjelasan:** `string | number` adalah **Union Type** (hanya menerima dua jenis data). `typeof` adalah **Type Guard** yang memilih operasi yang aman sesuai tipenya.
+
+📍 **GIT BASH — masih di `audit-ts`:**
 
 ```bash
+npx tsx src/audit.ts
+npx tsc --noEmit
+```
+
+**Hasil yang diharapkan:** `Nama: AZMI` dan `Nama: 123`. Perintah `tsc --noEmit` biasanya **tidak mencetak apa pun jika berhasil**: terminal kembali ke `$` tanpa pesan error.
+
+🎤 **NARASI:** “Saya mengganti any dengan Union Type string atau number dan menggunakan Type Guard agar tiap data ditangani dengan tepat. Setelah diuji, program berjalan dan pemeriksaan tsc tidak melaporkan error.”
+
+### 🔁 RESET TUGAS 1 (setelah latihan, sebelum rekaman)
+
+📍 **FILE EXPLORER WINDOWS, bukan agent:**
+
+1. **Tutup file yang sedang diedit**, lalu kembali ke folder `modul3` di File Explorer.
+2. **Hapus hanya folder `audit-ts`** hasil latihan (jangan hapus `modul3` atau folder lain).
+3. Saat rekaman dimulai, ulangi **Tugas 1 dari langkah 1.1**. Dengan begitu pembuatan folder, pengetikan manual, error, dan perbaikan benar-benar terlihat.
+4. Instalasi Node.js, Git, dan VS Code **tidak perlu diulang**.
+
+> Kalau yang ingin kamu ulang **hanya kesalahan kode** (bukan instalasi), tidak perlu hapus folder: kosongkan `src/audit.ts`, lalu mulai lagi dari **1.2**. Tetapi untuk rekaman proses lengkap, gunakan reset folder seperti di atas.
+
+---
+
+# 2. INSTAL & KENALI HARNESS — CODEX CLI
+
+**Tujuan:** Jalankan coding agent pada **proyek task-tracker yang sudah dibuat pada modul sebelumnya**, lalu minta agent menjelaskan strukturnya dan file instruksi yang dibaca.
+
+### 2.1 Siapkan proyek task-tracker yang lama
+
+📍 **FILE EXPLORER WINDOWS:** Cari folder **`task-tracker` lama** dari modul sebelumnya. **Copy**, kemudian **Paste** ke folder `modul3`, sehingga tersedia `modul3/task-tracker`. **Sebelum latihan Tugas 2, copy lagi folder ini dan beri nama `task-tracker-sebelum-2` sebagai backup.**
+
+> Jangan membuat folder `task-tracker` kosong sebagai pengganti proyek lama. Kalau proyek lamanya tidak ada, cari atau siapkan proyek tersebut dulu sebelum melanjutkan tugas 2–5.
+
+📍 **VS CODE:** **File → Open Folder → pilih `modul3/task-tracker`**.
+
+📍 **GIT BASH — terminal di root `task-tracker`:**
+
+```bash
+pwd
 ls
+npm install
 ```
 
-Output yang diharapkan tidak lagi menampilkan `amba_files.zip`.
+`pwd` harus berakhir `/modul3/task-tracker`. `ls` menunjukkan file proyek. `npm install` memasang dependensi berdasarkan `package.json`.
+
+### 2.2 Instal dan jalankan Codex
+
+📍 **GIT BASH — boleh dijalankan dari folder apa pun:**
+
+```bash
+npm install -g @openai/codex
+codex --version
+```
+
+**Hasil:** versi Codex tampil. Instalasi ini bersifat global: **tidak perlu diulang setiap rekaman**.
+
+📍 **GIT BASH — kembali/pastikan di root `modul3/task-tracker`:**
+
+```bash
+codex
+```
+
+Login jika diminta. Jangan merekam password atau kode login.
+
+📍 **CHAT CODEX (bukan Git Bash biasa) — ketik prompt berikut:**
 
 ```text
-amba_files  kenz_rescue.c  mnt
+Jelaskan struktur proyek task-tracker ini tanpa mengubah file.
+Sebutkan fungsi aplikasi, lokasi tipe Task, file penting,
+cara menjalankan aplikasi, dan perintah pemeriksaan TypeScript.
+Sebutkan juga file instruksi agent yang benar-benar kamu baca.
+Jika tidak ada, katakan tidak ada.
 ```
 
-```bash
-ls amba_files
-```
+**Hasil:** Agent menjelaskan berdasarkan file proyekmu. **Catat nama file yang benar-benar ditemukan**, jangan mengarang lokasi file.
 
-Output:
+🎤 **NARASI:** “Setelah coding manual, saya menjalankan Codex CLI pada proyek task-tracker lama. Agent saya minta memetakan struktur dan menyebutkan file instruksi yang dibaca.”
 
-```text
-1.txt  2.txt  3.txt  4.txt  5.txt  6.txt  7.txt
-```
+### 🔁 RESET TUGAS 2
 
-Penjelasan: bagian ini mengikuti soal karena ZIP harus diekstrak lalu dihapus dari working directory.
-
-## B. Compile Soal 1
-
-```bash
-gcc kenz_rescue.c $(pkg-config fuse3 --cflags --libs) -o kenz_rescue
-```
-
-Penjelasan: menghasilkan executable `kenz_rescue`.
-
-## C. Mount FUSE Soal 1
-
-```bash
-./kenz_rescue amba_files mnt
-```
-
-Penjelasan: menjalankan program dengan dua argumen, yaitu source directory `amba_files` dan mount directory `mnt`.
-
-## D. Cek passthrough file
-
-```bash
-ls mnt
-```
-
-Output yang diharapkan:
-
-```text
-1.txt  2.txt  3.txt  4.txt  5.txt  6.txt  7.txt  tujuan.txt
-```
-
-```bash
-cat mnt/1.txt
-```
-
-Penjelasan: output harus sama seperti `cat amba_files/1.txt`.
-
-Cek semua file source sama dengan file mount:
-
-```bash
-for i in 1 2 3 4 5 6 7; do diff mnt/$i.txt amba_files/$i.txt && echo "$i.txt OK"; done
-```
-
-Output yang diharapkan:
-
-```text
-1.txt OK
-2.txt OK
-3.txt OK
-4.txt OK
-5.txt OK
-6.txt OK
-7.txt OK
-```
-
-## E. Cek file virtual `tujuan.txt`
-
-```bash
-ls mnt
-```
-
-```bash
-ls amba_files
-```
-
-Penjelasan: `tujuan.txt` harus ada di `mnt`, tetapi tidak boleh ada di `amba_files`.
-
-```bash
-stat mnt/tujuan.txt
-```
-
-Penjelasan: ukuran `tujuan.txt` konsisten saat dicek dengan `stat`.
-
-```bash
-cat mnt/tujuan.txt
-```
-
-Output yang diharapkan:
-
-```text
-Tujuan Mas Amba: -7.957382728443728,112.4698688227961,23:59 WIB
-```
-
-```bash
-wc -c mnt/tujuan.txt
-```
-
-Penjelasan: command ini mengecek ukuran file virtual `tujuan.txt`. Angka byte dapat berbeda tergantung apakah program menambahkan newline atau tidak, tetapi ukurannya harus konsisten saat dicek ulang.
-
-```bash
-ls amba_files/tujuan.txt 2>&1
-```
-
-Output yang diharapkan:
-
-```text
-ls: cannot access 'amba_files/tujuan.txt': No such file or directory
-```
-
-Penjelasan: bagian ini membuktikan `tujuan.txt` dibuat virtual/on-the-fly di mount point.
-
-## F. Unmount Soal 1
-
-```bash
-fusermount3 -u mnt 2>/dev/null || fusermount -u mnt
-```
-
-```bash
-cd ..
-```
+- Karena promptnya **hanya membaca**, normalnya **tidak ada kode untuk dikembalikan**.
+- Setelah latihan, keluar dari Codex (gunakan perintah keluar yang ditampilkan aplikasi), lalu saat merekam jalankan `codex` lagi untuk **sesi baru**.
+- Jika saat latihan agent **ternyata mengubah file**, tutup VS Code/agent lalu arsipkan folder kerja `task-tracker` dan **copy `task-tracker-sebelum-2` menjadi folder `task-tracker`** melalui File Explorer. Backup jangan ikut dihapus.
+- **Tidak perlu uninstall/reinstall Codex**; cukup rekam `codex --version` sebagai bukti sudah terpasang.
 
 ---
 
-# Soal 2 - Pec MOO
+# 3. UJI AGENTS.md — DENGAN VS TANPA INSTRUKSI
 
-Target Soal 2:
-- mini database service berjalan pada TCP port `9000`;
-- client dapat menjalankan command database;
-- FUSE menghubungkan `encrypted_storage` sebagai direktori asli dan `fuse_mount` sebagai mount point;
-- file/folder di `fuse_mount` terlihat normal;
-- file/folder di `encrypted_storage` tersimpan terenkripsi dengan XOR key `0x76`;
-- nama file di backend ditambah `.enc`;
-- `notes.csv.enc` di `encrypted_storage/tests` harus tampil sebagai `notes.csv` di `fuse_mount/tests`;
-- Docker image bernama `soal-2-modul-4-sisop:latest`;
-- container bernama `db_app`;
-- bind mount `fuse_mount` ke `/app/db`.
+**Tujuan:** Kirim **prompt yang sama persis** sebelum dan setelah membuat `AGENTS.md`.
 
-Soal 2 dijalankan dengan 2 terminal.
+### 3.1 Kondisi TANPA AGENTS.md
+
+📍 **FILE EXPLORER — sebelum latihan Tugas 3:** Copy folder kerja `task-tracker` (hasil Tugas 2), paste di `modul3`, lalu beri nama **`task-tracker-sebelum-3`**. Simpan tanpa diubah.
+
+📍 **VS CODE:** Pastikan root `task-tracker` **belum memiliki `AGENTS.md`**. Kalau sudah ada sejak proyek lama, **jangan hapus sembarangan**: buat salinan untuk eksperimen dan simpan file asli sebagai backup.
+
+📍 **GIT BASH — di `modul3/task-tracker`:**
+
+```bash
+codex
+```
+
+📍 **CHAT CODEX — prompt percobaan A:**
+
+```text
+Saya ingin menambahkan fitur priority pada task-tracker.
+Jelaskan rencana perubahan, file yang perlu diperiksa,
+dan cara menguji hasilnya. Jangan ubah file apa pun.
+```
+
+**Hasil:** Catat respons pertama. Keluar dari sesi Codex setelah selesai.
+
+### 3.2 Buat AGENTS.md
+
+📍 **VS CODE (EDITOR):** Klik kanan folder utama `task-tracker` → **New File** → `AGENTS.md`. Isikan:
+
+```markdown
+# Aturan Proyek Task Tracker
+
+- Gunakan TypeScript dan hindari `any`.
+- Pertahankan fitur yang sudah berjalan.
+- Jelaskan rencana sebelum mengubah kode.
+- Ubah hanya file yang relevan.
+- Setelah mengubah kode, jalankan `npx tsc --noEmit`.
+- Untuk priority, gunakan "low" | "medium" | "high".
+```
+
+### 3.3 Kondisi DENGAN AGENTS.md
+
+📍 **GIT BASH — root `task-tracker`:**
+
+```bash
+codex
+```
+
+📍 **CHAT CODEX:** Kirim **prompt percobaan A yang sama persis**. Catat apakah jawaban kini mengikuti aturan file tersebut.
+
+🎤 **NARASI:** “Saya membandingkan prompt yang identik sebelum dan sesudah membuat AGENTS.md. File ini memberi aturan agar agent lebih konsisten, misalnya menghindari any dan menjalankan pemeriksaan tipe. Saya membandingkan jawaban nyata, bukan mengasumsikan pasti lebih baik.”
+
+### 🔁 RESET TUGAS 3
+
+- **Cara paling aman untuk semua kondisi:** Tutup Codex dan VS Code, arsipkan/hapus **hanya folder kerja `task-tracker` hasil latihan**, lalu **copy folder `task-tracker-sebelum-3` menjadi `task-tracker`** di `modul3`. Buka lagi proyek ini dan rekam mulai **3.1**.
+- Alternatif bila **hanya** file `AGENTS.md` yang berubah dan tadinya tidak ada: cukup hapus file baru tersebut. Jangan hapus aturan asli yang sudah ada sebelum latihan.
+- **Setelah Tugas 3 berhasil DIREKAM, biarkan `AGENTS.md` tetap ada** untuk Tugas 4–5.
 
 ---
 
-## A. Persiapan Soal 2
+# 4. FITUR PRIORITY — TAMPILKAN ERROR, LALU MINTA AGENT MEMPERBAIKI
 
-Jalankan di salah satu terminal.
+**Tujuan:** Tambahkan `priority: "low" | "medium" | "high"` pada tipe `Task`, tunjukkan error dari compiler (jika ada), lalu minta Codex memperbaiki semua bagian yang terdampak.
 
-```bash
-cd soal_2
-```
+### 4.0 Buat backup SEBELUM latihan Tugas 4
 
-```bash
-fusermount3 -u fuse_mount 2>/dev/null || fusermount -u fuse_mount 2>/dev/null || true
-```
+📍 **FILE EXPLORER:** Tutup sesi Codex. Di folder `modul3`, **copy folder `task-tracker`**, lalu **paste dan beri nama `task-tracker-sebelum-4`**. Ini checkpoint yang harus tetap utuh. Pastikan `AGENTS.md` dari Tugas 3 sudah masuk dalam backup.
 
-```bash
-sudo docker rm -f db_app 2>/dev/null || true
-```
+### 4.1 Cek kondisi sebelum perubahan
+
+📍 **GIT BASH — di `modul3/task-tracker`:**
 
 ```bash
-rm -f fuse client fuse.log
+npx tsc --noEmit
 ```
+
+Catat hasil awal. Kalau ada error lama, pisahkan dari error baru.
+
+### 4.2 Tambahkan priority secara manual
+
+📍 **VS CODE (EDITOR):** Tekan **Ctrl+Shift+F**, cari `interface Task` atau `type Task`. Buka file yang mendefinisikan `Task` dan **tambahkan properti ini** di dalam tipe yang sudah ada:
+
+```typescript
+priority: "low" | "medium" | "high";
+```
+
+**Jangan mengganti seluruh definisi Task** dengan contoh dari internet; cukup tambah properti. `priority` di sini **wajib**, jangan tambah tanda `?`.
+
+📍 **GIT BASH — root `task-tracker`:**
 
 ```bash
-rm -rf encrypted_storage/* fuse_mount/*
+npx tsc --noEmit
 ```
+
+**Hasil:** Compiler bisa menampilkan bahwa objek Task belum memiliki `priority`. **Jumlah error tergantung proyekmu**; kalau tidak ada error, periksa bahwa tipe yang kamu ubah dipakai oleh kode proyek dan termasuk pemeriksaan `tsconfig.json`.
+
+### 4.3 Minta Codex memperbaiki
+
+📍 **GIT BASH — root `task-tracker`:**
 
 ```bash
-mkdir -p encrypted_storage/tests
+codex
 ```
 
-```bash
-mkdir -p fuse_mount
-```
-
-```bash
-cp ~/Downloads/notes.csv.enc encrypted_storage/tests/notes.csv.enc
-```
-
-```bash
-ls server
-```
-
-```bash
-chmod +x server
-```
-
-```bash
-ls encrypted_storage/tests
-```
-
-Output:
+📍 **CHAT CODEX — prompt:**
 
 ```text
-notes.csv.enc
+Saya menambahkan field priority: "low" | "medium" | "high"
+pada tipe Task. Jalankan npx tsc --noEmit dan catat
+seluruh error. Buat rencana singkat, lalu perbaiki bagian
+pembuatan, pembaruan, penyimpanan, dan tampilan Task
+jika relevan. Tangani data lama yang belum punya priority.
+Jangan gunakan any dan ikuti AGENTS.md.
+Setelah selesai, jalankan lagi npx tsc --noEmit,
+uji fitur yang tersedia, dan sebutkan file yang diubah.
 ```
+
+**Hasil:** Rekam rencana agent, file yang diedit, error sebelum/sesudah, dan pemeriksaan akhir. Setujui perubahan hanya setelah membacanya.
+
+📍 **GIT BASH — setelah keluar dari agent:**
 
 ```bash
-ls -l server
+npx tsc --noEmit
+npm run
 ```
 
-Penjelasan: file `notes.csv.enc` dari soal disiapkan untuk testing FUSE, sedangkan file `server` sudah tersedia di folder Soal 2 untuk Docker.
+`npm run` **menampilkan daftar script yang tersedia**, bukan otomatis menjalankan aplikasi. Jalankan script proyek sesuai `package.json` (misalnya `npm run dev` **hanya kalau script `dev` ada**).
 
-## B. Compile Soal 2
+🎤 **NARASI:** “Saya menambahkan priority sebagai Union Type wajib. Compiler menunjukkan bagian kode yang perlu disesuaikan. Codex kemudian memperbaiki bagian terdampak, dan saya mengecek kembali TypeScript serta fungsi aplikasinya.”
 
-```bash
-gcc fuse.c $(pkg-config fuse3 --cflags --libs) -o fuse
-```
+### 🔁 RESET TUGAS 4
 
-```bash
-gcc client.c -o client
-```
+📍 **FILE EXPLORER — setelah latihan, SEBELUM rekam Tugas 4:**
 
-```bash
-ls
-```
+1. Tutup sesi Codex dan VS Code yang masih membuka file di `task-tracker`.
+2. Di dalam `modul3`, hapus atau pindahkan ke lokasi arsip **hanya folder kerja `task-tracker` yang berubah saat latihan**.
+3. **Copy** folder `task-tracker-sebelum-4` → **Paste**, lalu beri nama salinannya **`task-tracker`**.
+4. Buka `modul3/task-tracker` lagi di VS Code dan mulai rekam dari **4.1**.
+5. **Jangan hapus** `task-tracker-sebelum-4`.
 
-Output minimal:
-
-```text
-client  fuse  server
-```
+> Dengan cara ini, **Tugas 1–3 tidak perlu diulang**. Setelah Tugas 4 selesai direkam, lanjut ke Tugas 5 dari proyek yang sudah mempunyai priority.
 
 ---
 
-## C. Terminal 1 - Jalankan FUSE Foreground
+# 5. BANDINGKAN DUA HARNESS — CODEX VS CLAUDE CODE
 
-Buka Terminal 1.
+**Tujuan:** Minta dua agent membuat fitur yang sama: `list --status done`. Bandingkan rencana, error TypeScript, intervensi manual, dan kenyamanan.
+
+### 5.0 Buat baseline yang SAMA
+
+📍 **FILE EXPLORER — setelah Tugas 4 SELESAI:**
+
+1. Copy `modul3/task-tracker` yang sudah memiliki priority.
+2. Paste dan beri nama **`task-tracker-awal-5`**. **Jangan diedit** (ini backup/baseline).
+3. Copy `task-tracker-awal-5` dua kali, lalu beri nama **`task-tracker-codex`** dan **`task-tracker-claude`**.
+4. Pastikan keduanya berisi kode dan `AGENTS.md` yang sama.
+
+### 5.1 Uji awal kedua folder
+
+📍 **VS CODE:** **File → Open Folder → `modul3/task-tracker-codex`**.
+
+📍 **GIT BASH — root `task-tracker-codex`:**
 
 ```bash
-cd ~/"Modul 4"/soal_2
+npm install
+npx tsc --noEmit
+codex
 ```
 
-Jika folder repo berbeda, sesuaikan path.
+📍 **CHAT CODEX — gunakan prompt di bawah:**
+
+```text
+Baca AGENTS.md di root proyek.
+Tambahkan fitur list --status done supaya hanya
+menampilkan Task yang statusnya done.
+Perintah list tanpa filter harus tetap menampilkan semua Task.
+Tangani status tidak valid sesuai tipe status proyek.
+Sebelum coding, jelaskan rencana dan file yang akan diubah.
+Jangan gunakan any. Setelah implementasi pertama, jalankan
+npx tsc --noEmit, laporkan jumlah error, kemudian perbaiki.
+Uji fitur dan laporkan intervensi manual yang dibutuhkan.
+```
+
+**Catat:** rencana, jumlah error `tsc` setelah implementasi pertama, error akhir, apakah fitur bekerja, dan berapa kali kamu memberi arahan tambahan.
+
+### 5.2 Instal dan jalankan Claude Code
+
+📍 **TERMINAL POWERSHELL — bukan Git Bash**, dapat dibuka dari menu terminal VS Code:
+
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+
+**Hasil:** Tunggu instalasi selesai. Buka terminal baru, kemudian cek `claude --version`. Perlu login dan akun dengan akses Claude Code yang sesuai. Instalasi ini juga **tidak perlu diulang** setiap rekaman.
+
+📍 **VS CODE:** **File → Open Folder → `modul3/task-tracker-claude`**.
+
+📍 **GIT BASH — root `task-tracker-claude`:**
 
 ```bash
-./fuse encrypted_storage fuse_mount -o allow_other -f
+npm install
+npx tsc --noEmit
+claude
 ```
 
-Penjelasan: FUSE berjalan di foreground. Terminal 1 jangan ditutup selama testing Soal 2.
+📍 **CHAT CLAUDE:** Kirim **prompt yang sama persis** seperti pada **5.1**. Pastikan Claude benar-benar membaca `AGENTS.md` sesuai permintaan; jangan menganggap file itu otomatis dibaca.
+
+**Catat:** aspek penilaian yang sama dengan Codex.
+
+### 5.3 Uji aplikasi dan bandingkan
+
+`list --status done` **bukan perintah bawaan Git Bash**. Cara menjalankannya mengikuti desain `task-tracker` milikmu. Lihat `package.json`, atau minta masing-masing agent menunjukkan perintah pengujian yang tepat.
+
+**Contoh perilaku yang diharapkan:** Kalau ada 3 Task, dengan status `done`, `todo`, `done`, maka `list` menampilkan semuanya, sedangkan `list --status done` hanya menampilkan 2 Task berstatus `done`.
+
+| Penilaian | Codex CLI | Claude Code |
+|---|---|---|
+| Rencana jelas? | Isi hasil nyata | Isi hasil nyata |
+| Error `tsc` setelah implementasi awal | ... | ... |
+| Error `tsc` akhir | ... | ... |
+| Berapa intervensi manual? | ... | ... |
+| Fitur berhasil diuji? | ... | ... |
+| Alur kerja lebih nyaman? | ... | ... |
+
+🎤 **NARASI:** “Saya menguji fitur yang sama di dua salinan proyek dengan kondisi awal sama. Saya membandingkan kejelasan rencana, hasil tsc, intervensi manual, dan kenyamanan menggunakan Codex serta Claude.”
+
+### 🔁 RESET TUGAS 5
+
+📍 **FILE EXPLORER — setelah latihan, SEBELUM rekam Tugas 5:**
+
+1. Tutup kedua agent.
+2. Hapus atau arsipkan **hanya folder latihan `task-tracker-codex` dan `task-tracker-claude`**.
+3. **Copy dua kali dari `task-tracker-awal-5`**, lalu beri nama **`task-tracker-codex`** dan **`task-tracker-claude`** lagi.
+4. Jalankan ulang pengujian dari **5.1** saat merekam.
+5. **Tugas 1–4 tidak perlu diulang**. Codex dan Claude juga tidak perlu diinstal ulang.
+
+### 5.4 Kesimpulan (wajib satu paragraf)
+
+> “Berdasarkan percobaan fitur `list --status done` pada dua proyek dengan kondisi awal yang sama, Codex CLI menunjukkan [hasil nyata] dan Claude Code menunjukkan [hasil nyata]. Pada aspek rencana, [perbandingan]. Jumlah error TypeScript setelah implementasi pertama masing-masing [angka] dan [angka], sedangkan jumlah intervensi manual [perbandingan]. Dari segi kenyamanan dan hasil pengujian, [harness yang lebih sesuai] lebih cocok untuk proyek ini karena [alasan nyata].”
 
 ---
 
-## D. Terminal 2 - Testing FUSE seperti Soal
+# RINGKASAN RESET PER NOMOR
 
-Buka Terminal 2.
+| Mau ulang nomor | Apa yang di-reset? | Bagian lain perlu diulang? |
+|---|---|---|
+| **1** | Hapus folder latihan `audit-ts`, lalu buat lagi saat rekaman | **Tidak** |
+| **2** | Sesi Codex baru; bila kode berubah, pulihkan dari `task-tracker-sebelum-2` | **Tidak** |
+| **3** | Pulihkan `task-tracker` dari `task-tracker-sebelum-3` | **Tidak** |
+| **4** | Pulihkan `task-tracker` dari `task-tracker-sebelum-4` | **Tidak** |
+| **5** | Buat ulang dua folder harness dari `task-tracker-awal-5` | **Tidak** |
 
-```bash
-cd ~/"Modul 4"/soal_2
-```
+**Aturan aman:** Jangan menghapus folder backup (`task-tracker-sebelum-2`, `task-tracker-sebelum-3`, `task-tracker-sebelum-4`, dan `task-tracker-awal-5`). Sebelum menghapus folder kerja, lihat **nama dan alamat lengkapnya**. Jangan hapus proyek lama yang berada di luar `modul3`.
 
-Jika folder repo berbeda, sesuaikan path.
+## Urutan rekaman video
 
-Cek mount aktif:
+**1 → 2 → 3 → 4 → 5**, sesuai instruksi challenge. Boleh rekam **satu nomor per video**, lalu gabungkan sesuai ketentuan pengumpulan. Awali video final dengan **coding TypeScript manual**, bukan pengenalan AI.
 
-```bash
-mount | grep fuse_mount
-```
+## Referensi instalasi resmi
 
-Buat file di `fuse_mount`:
-
-```bash
-echo "isinya ini harusnya" > fuse_mount/file1.txt
-```
-
-Buat folder di `fuse_mount`:
-
-```bash
-mkdir fuse_mount/halo
-```
-
-Buat file di dalam folder:
-
-```bash
-echo "isinya ini harusnya" > fuse_mount/halo/file2.txt
-```
-
-Cek isi mount:
-
-```bash
-tree fuse_mount
-```
-
-Contoh output:
-
-```text
-fuse_mount
-├── file1.txt
-├── halo
-│   └── file2.txt
-└── tests
-    └── notes.csv
-```
-
-Cek backend terenkripsi:
-
-```bash
-tree encrypted_storage
-```
-
-Contoh output:
-
-```text
-encrypted_storage
-├── file1.txt.enc
-├── halo
-│   └── file2.txt.enc
-└── tests
-    └── notes.csv.enc
-```
-
-Cek isi file backend tidak terbaca normal:
-
-```bash
-cat encrypted_storage/file1.txt.enc
-```
-
-Penjelasan: output harus berupa teks tidak terbaca normal karena terenkripsi XOR.
-
-Cek isi file lewat mount terbaca normal:
-
-```bash
-cat fuse_mount/file1.txt
-```
-
-Output:
-
-```text
-isinya ini harusnya
-```
-
-```bash
-cat fuse_mount/halo/file2.txt
-```
-
-Output:
-
-```text
-isinya ini harusnya
-```
-
-Cek file checker dari soal:
-
-```bash
-ls fuse_mount/tests
-```
-
-Output:
-
-```text
-notes.csv
-```
-
-```bash
-cat fuse_mount/tests/notes.csv
-```
-
-Output yang diharapkan:
-
-```text
-author,notes
-admin,TEST_SUCCESS
-```
-
-Penjelasan: bagian ini membuktikan file `.enc` di backend tampil tanpa `.enc` dan terbaca normal di mount point.
-
-## E. Testing operasi FUSE tambahan
-
-```bash
-stat fuse_mount/file1.txt
-```
-
-```bash
-truncate -s 5 fuse_mount/file1.txt
-```
-
-```bash
-cat fuse_mount/file1.txt
-```
-
-```bash
-touch fuse_mount/file1.txt
-```
-
-```bash
-rm fuse_mount/halo/file2.txt
-```
-
-```bash
-rmdir fuse_mount/halo
-```
-
-Penjelasan: command ini membuktikan operasi `getattr`, `truncate`, `utimens`, `unlink`, dan `rmdir`.
-
----
-
-## F. Terminal 2 - Docker Image dan Container
-
-Build image:
-
-```bash
-sudo docker build -t soal-2-modul-4-sisop:latest .
-```
-
-Cek image:
-
-```bash
-sudo docker images
-```
-
-Output yang diharapkan memuat:
-
-```text
-soal-2-modul-4-sisop   latest
-```
-
-Jalankan container:
-
-```bash
-sudo docker run -d --name db_app -p 9000:9000 -v "$(pwd)/fuse_mount:/app/db" soal-2-modul-4-sisop:latest
-```
-
-Cek container:
-
-```bash
-sudo docker ps
-```
-
-Output yang diharapkan memuat:
-
-```text
-db_app
-0.0.0.0:9000->9000/tcp
-```
-
-Penjelasan: container `db_app` berjalan dan port `9000` terbuka.
-
----
-
-## G. Terminal 2 - Client Database
-
-Jalankan client:
-
-```bash
-./client 127.0.0.1 9000
-```
-
-Di dalam client, jalankan command berikut satu per satu:
-
-```text
-HELP
-```
-
-```text
-CREATE DATABASE tests
-```
-
-```text
-CREATE TABLE tests users email password
-```
-
-```text
-INSERT tests users admin@mail.com rahasia
-```
-
-```text
-LIST DATABASE
-```
-
-```text
-LIST TABLE tests
-```
-
-```text
-SELECT tests users
-```
-
-```text
-UPDATE tests users admin@mail.com root@mail.com
-```
-
-```text
-SELECT tests users
-```
-
-```text
-DELETE tests users root@mail.com
-```
-
-```text
-SELECT tests users
-```
-
-```text
-DROP DATABASE tests
-```
-
-```text
-EXIT
-```
-
-Penjelasan: alur ini mengikuti command database yang tersedia pada soal.
-
-Cek file database tersimpan melalui mount:
-
-```bash
-tree fuse_mount
-```
-
-Cek backend tetap terenkripsi:
-
-```bash
-tree encrypted_storage
-```
-
----
-
-## H. Stop Soal 2
-
-Di Terminal 2:
-
-```bash
-sudo docker rm -f db_app
-```
-
-Di Terminal 1 tekan:
-
-```text
-CTRL + C
-```
-
-Di Terminal 2:
-
-```bash
-fusermount3 -u fuse_mount 2>/dev/null || fusermount -u fuse_mount 2>/dev/null || true
-```
-
-```bash
-cd ..
-```
-
----
-
-# Soal 3 - LibraryIT
-
-Target Soal 3:
-- service utama bernama `libraryit-server`;
-- service logger bernama `libraryit-logger`;
-- Samba berjalan di port host `1445`;
-- folder koleksi berada di `/libraryit` dalam container dan `./data` di host;
-- user otomatis: `member`, `contributor`, `librarian`;
-- password:
-  - `member123`
-  - `contrib456`
-  - `lib789`
-- group otomatis:
-  - `readonly`: member
-  - `staff`: contributor dan librarian
-- share:
-  - `ebooks` dan `papers`: staff bisa baca/tulis, readonly hanya baca;
-  - `sourcecode`: readonly tidak boleh melihat/mengakses; staff dapat melihat tetapi tidak dapat menulis;
-  - `docs`: semua dapat membaca, hanya librarian yang boleh menulis;
-- data persistent di host;
-- `docs` tidak boleh dimodifikasi langsung dari host;
-- `sourcecode` di host permission `750`;
-- logger real-time format:
-  `[YYYY-MM-DD HH:MM:SS] [LEVEL] [USERNAME] [AKSI] [NAMA FILE/SHARE]`.
-
-Soal 3 dijalankan dengan 2 terminal.
-
----
-
-## A. Persiapan Soal 3
-
-```bash
-cd soal_3
-```
-
-```bash
-mkdir -p data/docs data/ebooks data/papers data/sourcecode logs
-```
-
-```bash
-touch logs/libraryit.log
-```
-
-```bash
-chmod +x entrypoint.sh
-```
-
-```bash
-sudo systemctl stop smbd nmbd 2>/dev/null || true
-```
-
-Penjelasan: Samba host dimatikan agar tidak bentrok dengan port container.
-
-## B. Build dan Run Docker Compose
-
-```bash
-sudo docker rm -f libraryit-server libraryit-logger 2>/dev/null || true
-```
-
-```bash
-sudo docker compose down --remove-orphans 2>/dev/null || true
-```
-
-```bash
-sudo docker compose build --no-cache
-```
-
-```bash
-sudo docker compose up -d
-```
-
-```bash
-sleep 5
-```
-
-```bash
-sudo docker ps
-```
-
-Output harus memuat:
-
-```text
-libraryit-server
-libraryit-logger
-0.0.0.0:1445->445/tcp
-```
-
----
-
-## C. Cek User dan Group Otomatis
-
-```bash
-sudo docker exec -it libraryit-server pdbedit -L
-```
-
-Output harus memuat:
-
-```text
-member
-contributor
-librarian
-```
-
-```bash
-sudo docker exec -it libraryit-server getent group staff readonly
-```
-
-Output harus memuat:
-
-```text
-staff:x:...:contributor,librarian
-readonly:x:...:member
-```
-
-```bash
-sudo docker exec -it libraryit-server ls /libraryit
-```
-
-Output:
-
-```text
-docs  ebooks  papers  sourcecode
-```
-
-Penjelasan: bagian ini membuktikan user, group, dan folder koleksi otomatis terbentuk saat container berjalan.
-
----
-
-## D. Terminal 1 - Logger Real-Time
-
-Buka Terminal 1.
-
-```bash
-cd ~/"Modul 4"/soal_3
-```
-
-Jika folder repo berbeda, sesuaikan path.
-
-```bash
-sudo docker logs -f libraryit-logger
-```
-
-Penjelasan: logger dipantau real-time seperti contoh soal.
-
----
-
-## E. Terminal 2 - Testing Samba Share
-
-Buka Terminal 2.
-
-```bash
-cd ~/"Modul 4"/soal_3
-```
-
-Jika folder repo berbeda, sesuaikan path.
-
-Cek daftar share sebagai member:
-
-```bash
-smbclient -L //localhost -p 1445 -U member%member123
-```
-
-Output yang diharapkan memuat:
-
-```text
-ebooks
-papers
-docs
-IPC$
-```
-
-`sourcecode` tidak boleh terlihat untuk `member`.
-
-Tes member tidak bisa akses sourcecode:
-
-```bash
-smbclient //localhost/SourceCode -p 1445 -U member%member123
-```
-
-Output yang diharapkan:
-
-```text
-tree connect failed: NT_STATUS_ACCESS_DENIED
-```
-
-Tes anonymous access:
-
-```bash
-smbclient -L //localhost -p 1445 -N
-```
-
-Output yang diharapkan: akses gagal.
-
----
-
-## F. Testing Hak Akses Tulis
-
-Buat file test:
-
-```bash
-echo "test ebook" > test_ebook.txt
-```
-
-Contributor upload ke `ebooks`:
-
-```bash
-smbclient //localhost/ebooks -p 1445 -U contributor%contrib456 -c "put test_ebook.txt; ls"
-```
-
-Output yang diharapkan: upload berhasil.
-
-Buat file test:
-
-```bash
-echo "test paper" > test_paper.txt
-```
-
-Contributor upload ke `papers`:
-
-```bash
-smbclient //localhost/papers -p 1445 -U contributor%contrib456 -c "put test_paper.txt; ls"
-```
-
-Output yang diharapkan: upload berhasil.
-
-Buat file docs:
-
-```bash
-echo "dokumen librarian" > test_docs.txt
-```
-
-Librarian upload ke `docs`:
-
-```bash
-smbclient //localhost/docs -p 1445 -U librarian%lib789 -c "put test_docs.txt; ls"
-```
-
-Output yang diharapkan: upload berhasil.
-
-Contributor tidak boleh upload ke `docs`:
-
-```bash
-echo "dokumen contributor" > test.txt
-```
-
-```bash
-smbclient //localhost/docs -p 1445 -U contributor%contrib456 -c "put test.txt"
-```
-
-Output yang diharapkan:
-
-```text
-NT_STATUS_ACCESS_DENIED opening remote file
-```
-
-Member tidak boleh menulis ke `docs`:
-
-```bash
-echo "dokumen member" > member_test.txt
-```
-
-```bash
-smbclient //localhost/docs -p 1445 -U member%member123 -c "put member_test.txt"
-```
-
-Output yang diharapkan:
-
-```text
-NT_STATUS_ACCESS_DENIED
-```
-
-Contributor tidak boleh menulis ke `sourcecode`:
-
-```bash
-echo "print('hello world')" > hello_world.py
-```
-
-```bash
-smbclient //localhost/sourcecode -p 1445 -U contributor%contrib456 -c "put hello_world.py"
-```
-
-Output yang diharapkan:
-
-```text
-NT_STATUS_ACCESS_DENIED opening remote file
-```
-
-Penjelasan: bagian ini mengikuti contoh soal bahwa `sourcecode` tidak dapat ditulis oleh contributor.
-
----
-
-## G. Cek Persistence dan Permission Host
-
-```bash
-sudo find data -type f
-```
-
-Output yang diharapkan memuat:
-
-```text
-data/ebooks/test_ebook.txt
-data/papers/test_paper.txt
-data/docs/test_docs.txt
-```
-
-Penjelasan: file tersimpan permanen di folder host `data`.
-
-Cek permission folder host:
-
-```bash
-ls -la ./data/
-```
-
-```bash
-ls -ld ./data/sourcecode
-```
-
-Output `sourcecode` harus menunjukkan permission `750`, misalnya:
-
-```text
-drwxr-x--- root staff ... ./data/sourcecode
-```
-
-Tes host tidak boleh langsung menulis ke docs:
-
-```bash
-touch ./data/docs/test_dari_host.txt
-```
-
-Output yang diharapkan:
-
-```text
-touch: cannot touch './data/docs/test_dari_host.txt': Permission denied
-```
-
-Penjelasan: `docs` hanya dimodifikasi lewat Samba, bukan langsung dari host.
-
----
-
-## H. Cek Log
-
-Di Terminal 2:
-
-```bash
-cat logs/libraryit.log | tail -30
-```
-
-```bash
-sudo docker logs libraryit-logger --tail=30
-```
-
-Di Terminal 1, log real-time harus menampilkan aktivitas dengan format seperti:
-
-```text
-[2025-05-08 10:00:01] [INFO] [contributor] [CONNECT] [sourceCode]
-[2025-05-08 10:01:22] [WARNING] [member] [DENIED] [SourceCode]
-[2025-05-08 10:02:45] [INFO] [librarian] [WRITE] [test.txt]
-```
-
-Penjelasan: `INFO` untuk aktivitas normal dan `WARNING` untuk akses yang ditolak.
-
----
-
-## I. Stop Soal 3
-
-Di Terminal 1 tekan:
-
-```text
-CTRL + C
-```
-
-Di Terminal 2:
-
-```bash
-sudo docker compose down
-```
-
-```bash
-cd ..
-```
-
----
-
-# Cleanup Semua Hasil Run
-
-Jalankan dari folder utama repository.
-
-```bash
-bash -lc 'set +e; fusermount3 -u soal_1/mnt 2>/dev/null || fusermount -u soal_1/mnt 2>/dev/null || true; fusermount3 -u soal_2/fuse_mount 2>/dev/null || fusermount -u soal_2/fuse_mount 2>/dev/null || true; sudo docker rm -f db_app libraryit-server libraryit-logger 2>/dev/null || true; (cd soal_3 && sudo docker compose down --remove-orphans 2>/dev/null || true); rm -rf soal_1/amba_files soal_1/mnt soal_1/kenz_rescue soal_1/fuse.log soal_1/amba_files.zip; rm -f soal_2/fuse soal_2/client soal_2/fuse.log; sudo rm -rf soal_2/encrypted_storage/* soal_2/fuse_mount/*; sudo rm -rf soal_3/data/docs/* soal_3/data/ebooks/* soal_3/data/papers/* soal_3/data/sourcecode/* soal_3/logs/*; rm -f ~/main.py ~/test_sourcecode.c ~/test_ebook.txt ~/test_paper.txt ~/test_docs.txt ~/contributor_docs.txt ~/member_test.txt test_ebook.txt test_paper.txt test_docs.txt test.txt member_test.txt hello_world.py; mkdir -p soal_2/encrypted_storage soal_2/fuse_mount soal_3/data/docs soal_3/data/ebooks soal_3/data/papers soal_3/data/sourcecode soal_3/logs; touch soal_3/logs/libraryit.log; sudo chown -R "$USER:$USER" soal_2/encrypted_storage soal_2/fuse_mount 2>/dev/null || true; echo "Cleanup selesai."'
-```
-
-Cek struktur akhir:
-
-```bash
-tree
-```
-
-Cek tidak ada `main.py`:
-
-```bash
-find . -name "main.py" -print
-```
-
-Jika tidak ada output, berarti bersih.
-
-Catatan kondisi tree awal sebelum demo:
-- `soal_2/server` tetap ada.
-- `soal_1/mnt` boleh tidak ada karena dibuat saat run.
-- `soal_2/encrypted_storage/tests` boleh tidak ada karena dibuat saat run.
-- file testing seperti `hello_world.py`, `test_ebook.txt`, dan sejenisnya tidak boleh tersisa.
+- Node.js: https://nodejs.org/
+- VS Code: https://code.visualstudio.com/
+- Git for Windows: https://git-scm.com/downloads
+- Codex CLI: https://github.com/openai/codex
+- Claude Code: https://support.claude.com/en/articles/14552382-your-first-day-in-claude-code
