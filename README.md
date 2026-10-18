@@ -1,502 +1,511 @@
-# Panduan Demo Challenge Modul 3
-## Perintah, lokasi kerja, dan naskah bicara
+# README Demo dan Command Cek - Modul 3 K12, Soal 1-10
 
-Panduan ini memakai VS Code, terminal PowerShell di Windows, Codex CLI, dan Gemini CLI. Jalankan sendiri proses live coding saat rekaman. Contoh audit di bawah merupakan bahan latihan; ketik dan jelaskan perubahannya langsung. Struktur proyek task-tracker belum diberikan, sehingga nama file dan perintah aplikasi harus mengikuti proyek yang sebenarnya.
+**Revisi 18 Oktober 2026: pemeriksaan nomor 10 mencocokkan status dan ID boot terbaru pada jichi/tengen.**
 
-## 0. Sebelum rekaman
+**Prefix: 192.217 | kelompok: K12 | domain-search: k12.com | mask: /24.**
 
-- Siapkan VS Code, Node.js versi LTS yang memenuhi Node.js 20+, dan proyek task-tracker dari modul sebelumnya.
-- Periksa versi Windows: dokumentasi Gemini CLI mencantumkan Windows 11 24H2+ sebagai lingkungan yang didukung. Pada Windows lama, periksa kompatibilitas sebelum hari demo.
-- Sediakan akses akun yang bisa dipakai untuk Codex dan Gemini CLI. Pemasangan CLI tidak otomatis menyediakan akses layanan/model.
-- Matikan bantuan penulisan kode AI di workspace audit-ts selama bagian manual.
-- Awali isi video dengan audit TypeScript. Tampilkan instalasi dan penggunaan harness setelah bagian audit selesai.
-- Buka VS Code > Terminal > New Terminal. Pilih PowerShell melalui panah di sebelah tombol +.
-- Perintah terminal dimasukkan di terminal biasa. Prompt agent dimasukkan setelah antarmuka codex atau gemini terbuka. Kode TypeScript dan isi AGENTS.md ditulis di editor.
-- Simpan tiap perubahan dengan Ctrl+S sebelum menjalankan pemeriksaan.
-- Buka terminal kedua lewat tombol + untuk npm/npx ketika terminal pertama sedang menjalankan agent. Periksa lokasinya dengan pwd.
+Gunakan setelah **README_KONFIGURASI.md** selesai. Setiap soal memuat **console tujuan, command cek, hasil yang diharapkan dan penjelasan saat demo**. Seluruh script `/root/m3-...` yang dipanggil sudah dibuat oleh README konfigurasi.
 
-Bicara:
-“Pada bagian pertama, saya akan mengaudit TypeScript secara manual. Saya memakai folder terpisah supaya percobaan ini tidak mengubah proyek task-tracker.”
+Untuk soal 6, 8, 9 dan 10, bagian **Pemicu demo** menyediakan transaksi DHCP, capture, gangguan atau restart yang memang diperlukan untuk pembuktian. Bagian **Cek hasil** memeriksa hasil pengujian tersebut. File ini tidak mengulang blok instalasi atau penulisan konfigurasi.
 
-## 1. Audit TypeScript manual
+Hasil di bawah adalah kriteria keberhasilan. Ambil screenshot dari output node setelah command dijalankan. Klaim berhasil mengikuti hasil nyata yang muncul di console.
 
-### 1A. Buat folder terpisah
+## 1. IP, gateway, forwarding, NAT dan konektivitas
 
-Di terminal PowerShell:
+### Console jichi - command cek
 
-```powershell
-cd $env:USERPROFILE
-mkdir demo-modul3
-cd demo-modul3
-mkdir audit-ts
-cd audit-ts
-npm init -y
-npm install typescript @types/node tsx --save-dev
-npx tsc --init
-mkdir src
-code .
+```bash
+date -Is
+hostname
+ip -4 addr show
+ip -4 route
+sysctl net.ipv4.ip_forward
+iptables -t nat -S POSTROUTING
+iptables -S FORWARD
+ping -c 3 -W 2 1.1.1.1
 ```
 
-Jika folder induk sudah ada, cukup masuk dengan cd; jangan buat ulang. Jika code tidak dikenali, buka folder lewat VS Code > File > Open Folder. Folder audit-ts harus menjadi saudara atau terpisah dari task-tracker, bukan berada di dalam src task-tracker.
+**Hasil yang diharapkan:**
 
-tsx dipasang sebagai development dependency agar npx tsx tidak meminta pemasangan mendadak saat demo.
+- eth0 memiliki IPv4 hasil DHCP NAT dan default route melalui eth0.
+- eth1 sampai eth4 memiliki `192.217.1.1/24`, `.2.1/24`, `.3.1/24`, `.4.1/24`.
+- `net.ipv4.ip_forward = 1`.
+- Aturan MASQUERADE untuk sumber `192.217.0.0/16` keluar lewat `eth0`.
+- Ping ke `1.1.1.1` mendapat balasan.
 
-Buka tsconfig.json. Pastikan properti ini ada di dalam compilerOptions:
+**Penjelasan saat demo:** “Jichi berfungsi sebagai gateway empat subnet. IPv4 forwarding meneruskan paket antarinterface, sedangkan MASQUERADE menerjemahkan alamat sumber internal saat trafik keluar ke NAT.”
 
-```json
-"strict": true,
-"types": ["node"]
+### Console seluruh host Debian selain jichi - command cek
+
+Ulangi pada utahime, shoko, gojo, tengen, geto, maki, panda, nanami, todo, kirara, yaga dan inumaki.
+
+```bash
+hostname
+ip -4 addr show dev eth0
+ip -4 route
+gw=$(ip -4 route show default | awk 'NR==1 {print $3}')
+if [ -n "$gw" ]; then ping -c 2 -W 2 "$gw"; else echo 'FAIL: gateway kosong'; fi
+ping -c 2 -W 2 1.1.1.1
 ```
 
-Jika sudah ada "types": [], ubah nilainya, jangan buat properti types kedua. Pengaturan types membantu TypeScript mengenali API Node seperti console. Tidak perlu mengganti keseluruhan konfigurasi.
+**Tambahan di utahime, untuk routing antarsegmen:**
 
-Di Explorer VS Code, klik kanan src > New File > beri nama audit.ts.
-
-### 1B. Ketik contoh berbahaya, 6 baris
-
-Di src/audit.ts:
-
-```typescript
-function formatTitle(title: any): string {
-  return title.toUpperCase();
-}
-
-const taskTitle = 123;
-console.log(formatTitle(taskTitle));
+```bash
+ping -c 2 -W 2 192.217.4.10
 ```
 
-Simpan. Di terminal yang lokasinya audit-ts, jalankan:
+**Hasil yang diharapkan:** IP sesuai tabel README konfigurasi; host Network 1 memakai gateway `.1.1`, host Network 4 memakai `.4.1`; gateway dan IP eksternal dapat dijangkau. Ping utahime ke tengen membuktikan konektivitas Network 1 ke Network 4.
 
-```powershell
-npx tsc --noEmit
-npx tsx src/audit.ts
+## 2. DHCP Server tengen dan subnet lokal tanpa pool
+
+### Console tengen - command cek
+
+```bash
+hostname
+ip -4 addr show dev eth0
+ip -4 route
+dhcpd -t -4 -cf /etc/dhcp/dhcpd.conf
+echo "Exit validasi DHCP: $?"
+cat /etc/default/isc-dhcp-server
+sed -n '/# NOMOR 2:/,/# NOMOR 4: Network/p' /etc/dhcp/dhcpd.conf
+bash /root/m3-service.sh status
+tail -n 20 /root/m3-dhcpd.log
 ```
 
-Pemeriksaan tipe dapat lolos, tetapi eksekusi menghasilkan error dengan inti pesan:
+**Hasil yang diharapkan:**
+
+- Tengen memiliki `.4.10/24`, gateway `.4.1`.
+- `Exit validasi DHCP: 0`.
+- Subnet `192.217.4.0/24` dideklarasikan tanpa `range` atau pool dinamis.
+- Daemon `dhcpd` aktif, port UDP 67 terbuka, interface server eth0.
+- Start terbaru tidak menampilkan error `No subnet declaration`.
+
+Banner copyright yang dicetak `dhcpd -t` merupakan output normal. Perhatikan exit validasi dan error setelah banner.
+
+**Penjelasan saat demo:** “Server berada di Network 4, sehingga subnet lokalnya harus tetap dideklarasikan walaupun tidak membagikan IP dinamis di segmen tersebut. Scope untuk Network 2 dan 3 melayani permintaan yang diteruskan relay.”
+
+## 3. Relay melayani client Network 2 dan 3
+
+### Console jichi - command cek
+
+```bash
+cat /etc/default/isc-dhcp-relay
+bash /root/m3-service.sh status
+tail -n 20 /root/m3-relay.log
+ping -c 2 -W 2 192.217.4.10
+```
+
+**Hasil yang diharapkan:** server tujuan `.4.10`; proses relay memiliki downstream `-id eth2 -id eth3` dan upstream `-iu eth4`.
+
+### Console Itadori dan Ino - command cek
+
+Ulangi pada kedua console.
+
+```sh
+sh /root/m3-client.sh check
+ping -c 2 -W 2 192.217.4.10
+ping -c 2 -W 2 1.1.1.1
+```
+
+### Console tengen - command cek log kedua client
+
+```bash
+grep -E 'DHCP(DISCOVER|OFFER|REQUEST|ACK).*02:12:03:(02|03):00:01' /root/m3-dhcpd.log | tail -n 16
+```
+
+**Hasil yang diharapkan:**
+
+| Client | IP | Gateway | Jalur pada log server |
+|---|---|---|---|
+| Itadori | `.2.10-.2.35` | `192.217.2.1` | via `192.217.2.1` |
+| Ino | `.3.10-.3.89` | `192.217.3.1` | via `192.217.3.1` |
+
+`serverid` dari ACK harus `192.217.4.10` pada keduanya. Waktu ACK pada client/log membantu menghubungkan hasil dengan transaksi yang didemokan.
+
+**Penjelasan saat demo:** “Broadcast DHCP dari kedua subnet diterima jichi pada interface client, kemudian diteruskan ke tengen. Server menggunakan informasi relay untuk memilih subnet dan pool yang sesuai.”
+
+## 4. Pool 1 dan Pool 2 berdasarkan class MAC
+
+### Console tengen - command cek
+
+```bash
+sed -n '/# NOMOR 4: class/,/# NOMOR 5: class/p' /etc/dhcp/dhcpd.conf
+sed -n '/# NOMOR 4: Network/,/# NOMOR 5: Network/p' /etc/dhcp/dhcpd.conf
+grep -E 'DHCPACK.*02:12:03:02:00:0[1-4]' /root/m3-dhcpd.log | tail -n 8
+```
+
+### Console Itadori, Fushiguro, Zenin dan Okkotsu - command cek
+
+```sh
+sh /root/m3-client.sh check
+```
+
+**Hasil yang diharapkan:**
+
+| Client | MAC eth0 | IP yang diperbolehkan |
+|---|---|---|
+| Itadori | `02:12:03:02:00:01` | 192.217.2.10-192.217.2.35 |
+| Fushiguro | `02:12:03:02:00:02` | 192.217.2.10-192.217.2.35 |
+| Zenin | `02:12:03:02:00:03` | 192.217.2.70-192.217.2.95 |
+| Okkotsu | `02:12:03:02:00:04` | 192.217.2.70-192.217.2.95 |
+
+Konfigurasi harus memperlihatkan `allow members of` pada setiap pool dan tidak memuat range `.2.36-.2.69`. IP client boleh berbeda-beda di dalam range yang benar.
+
+**Penjelasan saat demo:** “Semua client Divisi A berada pada subnet yang sama. Class berdasarkan MAC membatasi Itadori/Fushiguro ke Pool 1 dan Zenin/Okkotsu ke Pool 2. Pembuatan dua range saja belum membatasi identitas client; pembatasannya ditentukan oleh allow members of.”
+
+## 5. Short lease, long lease, DNS dan domain-search
+
+### Console tengen - command cek
+
+```bash
+head -n 9 /etc/dhcp/dhcpd.conf
+sed -n '/# NOMOR 5: class/,/# NOMOR 2:/p' /etc/dhcp/dhcpd.conf
+sed -n '/# NOMOR 5: Network/,/# NOMOR 6:/p' /etc/dhcp/dhcpd.conf
+```
+
+### Console Ino, Kusakabe dan Miwa - command cek
+
+```sh
+sh /root/m3-client.sh check
+```
+
+**Hasil yang diharapkan:**
+
+| Client | Pool | Field `lease` dari ACK |
+|---|---|---|
+| Ino | `.3.10-.3.89` | `1800` |
+| Kusakabe | `.3.10-.3.89` | `1800` |
+| Miwa | `.3.100-.3.199` | `43200` |
+
+Pada ketiganya harus terlihat:
 
 ```text
-TypeError: title.toUpperCase is not a function
+dns=192.217.1.2 192.217.1.3
+search=k12.com
+serverid=192.217.4.10
 ```
 
-Bicara:
-“Saya menggunakan any pada parameter title. Akibatnya, TypeScript mengizinkan pemanggilan toUpperCase meskipun nilai yang masuk berupa angka. Pemeriksaan tipe lolos, tetapi program gagal saat dijalankan karena angka tidak memiliki method toUpperCase. Jadi, strict tidak melarang any yang saya tulis secara eksplisit.”
+Resolver juga harus memuat `search k12.com` dan kedua nameserver. Field pada `DHCPACK TERAKHIR` adalah data yang dicatat hook dari DHCP.
 
-### 1C. Tampilkan proses perbaikan
+**Penjelasan saat demo:** “Ino/Kusakabe menerima lease 30 menit dan Miwa 12 jam sesuai class masing-masing. DNS dan domain-search diberikan melalui DHCP options. Durasi dibuktikan dari ACK, bukan dari lamanya client dapat melakukan ping.”
 
-Pertama, ubah hanya any menjadi string | number:
+## 6. Fixed-address Kugisaki
 
-```typescript
-function formatTitle(title: string | number): string {
-  return title.toUpperCase();
-}
+### Console tengen - command cek
+
+```bash
+sed -n '/# NOMOR 6:/,$p' /etc/dhcp/dhcpd.conf
+grep 'range ' /etc/dhcp/dhcpd.conf
+grep -E 'DHCP(ACK|OFFER).*02:12:03:03:00:04' /root/m3-dhcpd.log | tail -n 8
 ```
 
-Jangan hapus pemanggilan fungsi di bawahnya. Simpan, lalu jalankan:
+### Console Kugisaki - cek hasil saat ini
 
-```powershell
-npx tsc --noEmit
+```sh
+sh /root/m3-client.sh check
 ```
 
-Compiler sekarang menolak pemanggilan toUpperCase pada nilai yang mungkin berupa number. Ini tahap sementara yang sengaja ditampilkan, bukan hasil akhir.
+### Pemicu demo - dua transaksi di Kugisaki
 
-Bicara:
-“Setelah saya membatasi parameter menjadi string atau number, compiler mulai menunjukkan operasi yang belum aman. Saya perlu membedakan cara menangani kedua tipe tersebut.”
+Gunakan saat diminta membuktikan IP yang sama pada dua permintaan. `fresh` memulai transaksi DHCP baru.
 
-Lalu ubah seluruh isi src/audit.ts menjadi:
-
-```typescript
-function formatTitle(title: string | number): string {
-  if (typeof title === "string") {
-    return title.toUpperCase();
-  }
-  return String(title);
-}
-
-console.log(formatTitle(123));
-console.log(formatTitle("belajar typescript"));
+```sh
+sh /root/m3-client.sh fresh
+sh /root/m3-client.sh check
+sh /root/m3-client.sh fresh
+sh /root/m3-client.sh check
 ```
 
-Simpan, kemudian:
+**Hasil yang diharapkan:** kedua transaksi mendapat `192.217.3.99/24`, MAC `02:12:03:03:00:04`, gateway `.3.1`, serverid `.4.10`. Alamat `.3.99` berada di luar kedua pool Network 3.
 
-```powershell
-npx tsx src/audit.ts
-npx tsc --noEmit
-$LASTEXITCODE
+**Penjelasan saat demo:** “Kugisaki tetap menggunakan DHCP, dengan alamat yang ditentukan oleh reservasi MAC pada server. Setiap transaksi mendapatkan .3.99. Fixed-address tidak dicatat sebagai binding dinamis biasa, sehingga buktinya menggunakan deklarasi host, ACK dan IP client.”
+
+## 7. Audit seluruh client dan database lease
+
+### Console delapan client - command cek
+
+Ulangi pada Itadori, Fushiguro, Zenin, Okkotsu, Ino, Kusakabe, Miwa dan Kugisaki.
+
+```sh
+sh /root/m3-client.sh audit
+echo "Exit audit client: $?"
 ```
 
-Output aplikasi:
+### Console tengen - command cek
 
-```text
-123
-BELAJAR TYPESCRIPT
+```bash
+ls -l /var/lib/dhcp/dhcpd.leases
+python3 /root/m3-audit-leases.py
+echo "Exit audit server: $?"
+grep -E 'DHCPACK.*02:12:03:03:00:04' /root/m3-dhcpd.log | tail -n 2
 ```
 
-tsc biasanya tidak menampilkan apa pun saat berhasil. $LASTEXITCODE sesudah tsc seharusnya 0.
+**Hasil yang diharapkan:**
 
-Bicara:
-“Saya memakai union type karena fungsi ini memang menerima string atau number. Pemeriksaan typeof menjadi type guard: pada cabang string, saya boleh menggunakan toUpperCase. Untuk angka, saya mengubahnya menjadi string secara eksplisit. Kedua contoh sekarang berjalan, dan pemeriksaan TypeScript selesai tanpa error.”
+- Client: `HASIL: PASS NAMA_CLIENT` dan exit `0`.
+- Mask `255.255.255.0`, gateway `.2.1`/`.3.1`, broadcast `.2.255`/`.3.255`.
+- DNS `.1.2 .1.3`, domain-search `k12.com`, IP aktif sesuai ACK.
+- Ping gateway, tengen dan `1.1.1.1` berhasil.
+- Server: tujuh binding dinamis sesuai pool/durasi, tanpa binding aktif ganda; Kugisaki memakai bukti ACK terpisah.
 
-Catatan konsep: tsx menjalankan kode, sedangkan tsc --noEmit memeriksa tipe tanpa menghasilkan file JavaScript. Keduanya perlu diperlihatkan. Lolos tsc tidak membuktikan seluruh perilaku program bebas bug.
+**Penjelasan saat demo:** “Pemeriksaan mencocokkan options dari ACK dengan IP, route dan resolver yang aktif di client. Audit server membaca deklarasi lease terbaru per IP. Riwayat lease lama atau expired tidak dihitung sebagai bentrok aktif.”
 
-## 2. Instalasi dan pengenalan harness
+Jika muncul MAC unknown, periksa apakah lease itu sisa identitas client lama yang masih aktif. Periksa waktu expiry dan identitas client untuk menyelesaikannya. Status FAIL perlu ditangani sebelum screenshot dipakai sebagai bukti berhasil.
 
-### 2A. Instal setelah bagian manual
+## 8. DORA dan field giaddr
 
-Di terminal biasa:
+### Pemicu demo - jalankan bergantian pada tengen dan Ino
 
-```powershell
-npm install -g @openai/codex
-codex --version
-npm install -g @google/gemini-cli
-gemini --version
+**Pertama, console tengen:**
+
+```bash
+bash /root/m3-capture.sh start
 ```
 
-Catat versi yang benar-benar muncul. Jika PowerShell memblokir npm.ps1, gunakan npm.cmd; jika npx.ps1 terblokir, gunakan npx.cmd. Launcher npm lain seperti gemini juga dapat dipanggil sebagai gemini.cmd bila tersedia. Tidak perlu mengubah execution policy.
+**Kedua, console Ino saat capture masih aktif:**
 
-Bicara:
-“Sekarang saya beralih ke harness. Harness adalah aplikasi yang menghubungkan model AI dengan file proyek dan alat seperti terminal, sehingga agent dapat membaca kode, mengeditnya, dan menjalankan pemeriksaan.”
-
-### 2B. Buka task-tracker yang sudah ada
-
-Di VS Code pilih File > Open Folder > folder task-tracker. Pilih folder yang berisi package.json. Jangan menjalankan npm init di proyek yang sudah ada.
-
-Buka terminal baru dan jalankan:
-
-```powershell
-pwd
-npm install
-npm run
-npx tsc --noEmit
+```sh
+sh /root/m3-client.sh fresh
+sh /root/m3-client.sh check
 ```
 
-npm run menampilkan script yang tersedia. Gunakan package manager proyek jika ternyata proyek memakai pnpm/yarn; contoh panduan ini mengasumsikan npm. Selesaikan error bawaan proyek terlebih dahulu agar perubahan berikutnya memiliki titik awal yang bersih.
+**Ketiga, kembali ke tengen setelah Ino mendapat ACK:**
 
-Jalankan:
-
-```powershell
-codex
+```bash
+bash /root/m3-capture.sh stop
 ```
 
-Ikuti opsi Sign in with ChatGPT atau metode login yang tersedia untuk akunmu. Pilih izin yang sesuai folder kerja melalui tampilan harness. Tampilkan proses agent saat membaca file, menjalankan perintah, dan mengajukan perubahan.
+### Console tengen - command cek ulang capture tersimpan
 
-Ketik prompt berikut di Codex:
-
-```text
-Jelaskan struktur proyek ini tanpa mengubah file.
-Temukan definisi Task, lokasi pembuatan Task, penyimpanan data,
-pemrosesan argumen CLI, serta script menjalankan aplikasi.
-Sebutkan file instruksi yang aktif atau benar-benar kamu baca beserta path-nya.
-Bedakan file instruksi agent dari file sumber dan dokumentasi biasa.
-Jika tidak bisa memastikan suatu sumber instruksi, jelaskan keterbatasannya.
-Tuliskan perintah konkret untuk menjalankan fitur CLI proyek ini.
+```bash
+tcpdump -nn -vvv -r /root/bukti-m3/08-dora.pcap
 ```
 
-Catat hasilnya:
+**Hasil yang diharapkan:** pilih paket dengan MAC Ino dan `xid` yang sama.
 
-| Hal | Hasil nyata |
+| Field tcpdump | Nilai/arti |
 |---|---|
-| File definisi Task | ... |
-| File pembuat Task | ... |
-| File parser/perintah CLI | ... |
-| Lokasi penyimpanan data | ... |
-| Script menjalankan aplikasi | ... |
-| File instruksi agent dan path | ... |
-| Versi CLI dan model aktif | ... |
+| DHCP-Message option 53 | Discover -> Offer -> Request -> ACK |
+| Client-Ethernet-Address | `02:12:03:03:00:01` |
+| xid | Sama dalam satu transaksi |
+| Server-ID option 54 | `192.217.4.10` |
+| Your-IP / yiaddr | Alamat Ino di `.3.10-.3.89` |
+| Lease-Time option 51 | `1800` detik |
+| Gateway-IP / giaddr | `192.217.3.1` |
+| Default-Gateway option 3 | `192.217.3.1` |
+| DNS option 6 | `.1.2`, `.1.3` |
+| Domain-Search option 119 | `k12.com` |
 
-Bicara:
-“Saya menjalankan harness dari root task-tracker agar agent bekerja pada proyek yang benar. Saya meminta pemetaan struktur terlebih dahulu supaya bisa menilai apakah agent memahami alur aplikasi dan file instruksi yang digunakannya.”
+**Penjelasan saat demo:** “Discover mencari layanan, Offer menawarkan alamat, Request memilih tawaran, dan ACK mengonfirmasi lease. Giaddr .3.1 menunjukkan interface jichi yang menerima request Ino. Nilai ini membantu server memilih subnet Network 3.”
 
-## 3. Perbandingan dengan dan tanpa AGENTS.md
+Jika client yang dipilih Itadori, giaddr menjadi `.2.1`. Pada segmen tengen, MAC client berada dalam payload DHCP, sedangkan frame Ethernet berasal dari relay. Capture berdasarkan port 67/68 tetap menangkap transaksi tersebut.
 
-Lakukan dua percobaan memakai Codex, model yang sama, dan prompt yang sama. Kedua percobaan hanya meminta rencana, sehingga kode sumber tetap sama.
+## 9. Relay mati, DHCP baru gagal, kemudian pulih
 
-Jika AGENTS.md proyek belum ada, lanjutkan langsung. Jika sudah ada, lakukan percobaan di salinan proyek; pindahkan sementara file instruksi proyek keluar dari salinan sebelum percobaan “tanpa”, lalu kembalikan untuk percobaan “dengan”. Jangan menghapus instruksi asli. Catat instruksi global atau file instruksi lain yang tetap aktif; “tanpa” di sini berarti tanpa AGENTS.md proyek yang sedang diuji.
+### A. Pemicu gangguan - console jichi
 
-### 3A. Tanpa AGENTS.md proyek
+```bash
+date -Is
+bash /root/m3-service.sh stop
+bash /root/m3-service.sh status
+```
 
-Mulai sesi Codex baru. Ketik prompt ini dan simpan hasilnya:
+**Hasil yang diharapkan:** `dhcrelay TIDAK AKTIF`. Exit status nonzero dari pemeriksaan layanan saat mati memang sesuai skenario.
+
+### B. Pemicu permintaan DHCP baru - console Itadori
+
+```sh
+if sh /root/m3-client.sh fresh; then
+    echo 'FAIL simulasi: client masih memperoleh DHCP; periksa relay/server lain.'
+else
+    echo 'SESUAI: DHCP baru gagal saat relay dihentikan.'
+fi
+```
+
+### C. Cek hasil gangguan - console Itadori
+
+```sh
+ip -4 addr show dev eth0
+ip -4 route
+cat /root/m3-udhcpc.log
+```
+
+**Hasil yang diharapkan:** Discover dikirim berulang, tidak memperoleh lease/ACK, tidak ada IPv4 global dan default route hasil DHCP pada eth0.
+
+### D. Cek server tetap hidup - console tengen
+
+```bash
+bash /root/m3-service.sh status
+```
+
+### E. Pemulihan relay - console jichi
+
+```bash
+bash /root/m3-service.sh start
+bash /root/m3-service.sh status
+```
+
+### F. Pemicu permintaan ulang dan cek pemulihan - console Itadori
+
+```sh
+sh /root/m3-client.sh fresh
+sh /root/m3-client.sh audit
+```
+
+### G. Cek ACK pemulihan - console tengen
+
+```bash
+grep -E 'DHCP(DISCOVER|OFFER|REQUEST|ACK).*02:12:03:02:00:01' /root/m3-dhcpd.log | tail -n 8
+```
+
+**Hasil yang diharapkan:** Itadori kembali mendapat Pool 1 `.2.10-.2.35`, gateway `.2.1`, options benar dan `HASIL: PASS itadori`. IP dinamis boleh berbeda dari sebelum gangguan.
+
+**Penjelasan saat demo:** “Fresh melepas IP dan memulai Discover baru, sehingga pengujian bergantung pada relay. Ketika relay dihentikan, broadcast client tidak diteruskan ke tengen. Setelah relay aktif, transaksi DHCP berhasil lagi. Client lain dengan lease lama tidak harus langsung kehilangan konektivitas.”
+
+## 10. Autostart sesudah restart node
+
+### Sebelum restart - console jichi dan tengen
+
+Ulangi pada kedua node. Persiapan autostart dan pengaturan Start command harus sudah selesai di README konfigurasi.
+
+Start command pada **jichi dan tengen** harus sama:
 
 ```text
-Buat rencana menambahkan priority pada Task dengan nilai low, medium, atau high.
-Jangan ubah file dulu. Sebutkan file yang perlu diubah,
-keputusan implementasi, dan cara memverifikasinya.
+/bin/bash /etc/network/modul3/console-start.sh
 ```
 
-Simpan jawaban di catatan di luar root proyek, atau ambil tangkapan layar.
+Baris ini diperiksa melalui pengaturan GNS3. Command di bawah hanya memeriksa file/status dan tidak menjalankan ulang boot.
 
-### 3B. Buat AGENTS.md di root proyek
-
-Di Explorer VS Code, buat AGENTS.md sejajar dengan package.json. Isinya:
-
-```markdown
-# Instruksi proyek task-tracker
-
-- Gunakan bahasa Indonesia.
-- Mulai respons perencanaan dengan urutan: Rencana, File terdampak, Verifikasi.
-- Ikuti struktur dan gaya kode proyek yang sudah ada.
-- Pertahankan strict TypeScript.
-- Jangan gunakan any, @ts-ignore, atau type assertion untuk menutupi error.
-- Hindari dependency baru jika fitur dapat dibuat dengan kode yang sudah tersedia.
-- Priority Task wajib bernilai low, medium, atau high.
-- Gunakan medium sebagai default untuk task baru tanpa input priority.
-- Jika ada data lama tanpa priority, tangani pada batas pembacaan data.
-- Jangan mengarang nama file atau hasil pengujian.
-- Setelah implementasi, jalankan npx tsc --noEmit dan uji perilaku yang diubah.
-- Pada checkpoint demo yang diminta pengguna, berhenti agar hasil bisa direkam.
+```bash
+hostname
+cat /root/m3-role
+ls -l /etc/network/modul3/console-start.sh
+ls -l /etc/network/modul3/start.sh
+ls -l /etc/network/modul3/root-files/m3-boot.sh
+cat /etc/network/modul3/state/boot-packages.txt
+find /etc/network/modul3/state/boot-debs -maxdepth 1 -name '*.deb' | wc -l
+cat /etc/network/modul3/state/autostart-ready.txt
+cat /etc/network/modul3/state/boot-status.txt
+(
+    cd /etc/network/modul3/state/boot-debs || exit 1
+    sha256sum -c SHA256SUMS
+)
 ```
 
-Aturan default medium adalah keputusan untuk demo ini, bukan syarat tambahan dari soal.
+**Hasil yang diharapkan:** wrapper dan script startup tersedia, nama peran sesuai, daftar paket ada, checksum cache `OK`, dan persiapan menghasilkan `AUTOSTART SIAP: NAMA_NODE`. **Catat nilai `id=...` sebelum restart.** Jumlah file cache lebih dari nol saja belum membuktikan kelengkapan dependensi; validasi paket/versi dan percobaan boot dilakukan oleh script konfigurasi.
 
-Tutup sesi Codex setelah respons selesai, misalnya dengan Ctrl+C mengikuti petunjuk CLI, lalu jalankan codex lagi. Tidak cukup hanya mengganti teks prompt pada percakapan lama karena konteks percakapan dapat memengaruhi hasil.
+### Pemicu demo - Stop/Start melalui GNS3
 
-Kirim prompt yang SAMA PERSIS dengan percobaan sebelumnya. Setelah respons, tanyakan file instruksi aktif untuk membantu pencatatan.
+1. Cadangkan screenshot/output bukti yang diperlukan dari `/root` sebelum Stop/Start; direktori tersebut belum tentu persisten.
+2. Stop **jichi dan tengen** melalui GNS3.
+3. Start **jichi terlebih dahulu**, tunggu prompt Bash dan periksa status boot jichi. Jika jichi berhasil, Start **tengen** dan tunggu prompt Bash.
+4. Periksa status berikut langsung sesudah startup. Pada tahap bukti ini cukup gunakan command cek; menjalankan ulang script boot atau daemon akan mengaburkan bukti autostart.
 
-Bandingkan:
+### Sesudah restart - console jichi
 
-| Aspek | Tanpa AGENTS.md proyek | Dengan AGENTS.md proyek |
+```bash
+date -Is
+hostname
+cat /etc/network/modul3/state/boot-status.txt
+tail -n 35 /etc/network/modul3/boot.log
+ip -4 addr show
+ip -4 route
+sysctl net.ipv4.ip_forward
+iptables -t nat -S POSTROUTING
+bash /root/m3-service.sh status
+ping -c 2 -W 2 192.217.4.10
+ping -c 2 -W 2 1.1.1.1
+```
+
+### Sesudah restart - console tengen
+
+```bash
+date -Is
+hostname
+cat /etc/network/modul3/state/boot-status.txt
+tail -n 35 /etc/network/modul3/boot.log
+ip -4 addr show dev eth0
+ip -4 route
+dhcpd -t -4 -cf /etc/dhcp/dhcpd.conf
+echo "Exit validasi DHCP: $?"
+bash /root/m3-service.sh status
+ls -l /var/lib/dhcp/dhcpd.leases
+ping -c 2 -W 2 192.217.4.1
+ping -c 2 -W 2 1.1.1.1
+```
+
+### Pemicu DHCP baru dan cek - seluruh delapan client
+
+Permintaan baru membuktikan bahwa server dan relay hasil autostart dapat mengalokasikan alamat.
+
+```sh
+sh /root/m3-client.sh fresh
+sh /root/m3-client.sh audit
+```
+
+### Audit akhir - console tengen
+
+```bash
+python3 /root/m3-audit-leases.py
+echo "Exit audit server: $?"
+grep -E 'DHCPACK.*02:12:03:03:00:04' /root/m3-dhcpd.log | tail -n 2
+```
+
+**Hasil yang diharapkan:**
+
+- File `boot-status.txt` menunjukkan `BOOT OK: jichi` / `BOOT OK: tengen`, waktunya sesudah restart, dan **ID berbeda dari sebelum restart**.
+- Relay dan server aktif otomatis; IP, gateway, forwarding dan NAT tetap benar.
+- Semua client mendapat DHCP baru dan lulus audit.
+- Pool 1/Pool 2 tetap sesuai; Ino/Kusakabe 1800 detik; Miwa 43200 detik; Kugisaki `.3.99`.
+
+**Penjelasan saat demo:** “Startup memulihkan script dan paket yang diperlukan, kemudian menerapkan konfigurasi jaringan dan menjalankan layanan. Pemeriksaan setelah restart menunjukkan layanan aktif otomatis. Permintaan DHCP baru dari kedua subnet membuktikan kebijakan alokasi tetap berjalan.”
+
+### Jika boot gagal - command diagnosis saja
+
+Jalankan pada node yang gagal. Wrapper tetap membuka Bash agar output bisa diperiksa:
+
+```bash
+cat /etc/network/modul3/state/boot-status.txt
+tail -n 80 /etc/network/modul3/boot.log
+cat /etc/network/modul3/state/boot-packages.txt
+ls -l /etc/network/modul3/console-start.sh
+```
+
+`BOOT GAGAL` atau `BOOT MULAI` yang belum selesai berarti pengujian belum lulus. `BOOT OK` lama di riwayat `boot.log` tidak menggantikan status percobaan terbaru. Perbaikan untuk error APT `Pathname to install is not absolute` ada di **README_KONFIGURASI.md nomor 10A-10B**; gunakan script revisi utuh, lalu ulangi pengujian Stop/Start. Saat perbaikan, bedakan output pemulihan manual dari bukti autostart setelah restart.
+
+## Checklist screenshot per nomor
+
+| Soal | Console | Bukti utama |
 |---|---|---|
-| Format rencana | Isi hasil | Isi hasil |
-| Default priority | Disebut atau tidak | Sesuai medium atau tidak |
-| Data lama | Dibahas atau tidak | Dibahas atau tidak |
-| Type safety | Isi hasil | Isi hasil |
-| Verifikasi | Isi hasil | Isi hasil |
-
-Bicara:
-“Permintaan dan kode awal saya buat sama. Yang saya ubah adalah konteks proyek melalui AGENTS.md. Saya membandingkan format rencana, keputusan default priority, penanganan data lama, dan rencana verifikasinya. Dari hasil yang tampil, perbedaan yang saya temukan adalah ...”
-
-Lengkapi kalimat terakhir berdasarkan bukti. Jika hasil hampir sama, katakan demikian; tidak perlu memaksakan perbedaan.
-
-## 4. Tambahkan priority dan biarkan compiler memandu perbaikan
-
-### 4A. Ubah hanya definisi Task
-
-Gunakan Ctrl+Shift+F untuk mencari interface Task atau type Task. Ikuti file hasil pemetaan harness.
-
-Tambahkan hanya baris ini di dalam tipe yang sudah ada:
-
-```typescript
-priority: "low" | "medium" | "high";
-```
-
-Pertahankan seluruh field lama. Jangan menambahkan tanda ? karena priority diminta sebagai field wajib. Jangan dulu memperbaiki object pembuat Task.
-
-Simpan, lalu di terminal biasa pada task-tracker:
-
-```powershell
-npx tsc --noEmit
-```
-
-Rekam seluruh daftar error yang benar-benar muncul. Pesannya dapat berbunyi bahwa property priority hilang pada object tertentu; jumlah dan lokasi tergantung proyek.
-
-Bicara:
-“Saya menambahkan priority sebagai field wajib dengan tiga pilihan nilai. Saya belum memperbaiki tempat pembuatan Task. Sekarang compiler menunjukkan bagian bertipe yang belum memenuhi definisi baru.”
-
-Jika tidak ada error, jangan mengklaim seluruh alur sudah benar. Periksa apakah file masuk cakupan tsconfig, apakah tipe Task benar-benar dipakai, atau apakah any/type assertion/JSON.parse melewati pemeriksaan. Compiler tidak memvalidasi isi file JSON pada runtime secara otomatis.
-
-### 4B. Minta agent memperbaiki error
-
-Di Codex:
-
-```text
-Saya sudah menambahkan field wajib priority: "low" | "medium" | "high" pada Task.
-Jalankan npx tsc --noEmit dan jelaskan seluruh error yang ditemukan.
-Perbaiki pemakaian Task yang terdampak, termasuk pembuatan object dan fixture
-yang relevan. Gunakan medium sebagai default ketika priority tidak diberikan.
-Jika ada penyimpanan data lama, tangani data tanpa priority saat dibaca dan
-validasi nilai eksternal, bukan sekadar memaksa tipenya.
-Jangan menjadikan priority optional, menonaktifkan strict, atau menutupi
-masalah dengan any, @ts-ignore, atau type assertion.
-Tunjukkan perubahan file dan jalankan npx tsc --noEmit kembali hingga lulus.
-Verifikasi perilaku terkait priority. Jangan kerjakan filter list --status dulu.
-```
-
-Tampilkan operasi agent dan perubahan file langsung. Gunakan panel Source Control bila proyek memakai Git, atau buka file yang diubah agent.
-
-Setelah agent selesai, periksa sendiri:
-
-```powershell
-npx tsc --noEmit
-$LASTEXITCODE
-```
-
-Jalankan aplikasi dengan perintah yang sesuai package.json. Buat/lihat task untuk memastikan default priority benar. Jika proyek membaca JSON, periksa pula data lama tanpa priority.
-
-Bicara:
-“Agent memperbaiki lokasi yang terdampak perubahan tipe. Saya mengecek hasilnya lewat compiler dan perilaku aplikasi. Field priority tetap wajib, dan nilai default ditangani di tempat pembuatan atau pembacaan data yang sesuai.”
-
-## 5. Bandingkan dua harness pada list --status done
-
-### 5A. Buat titik awal yang sama
-
-Selesaikan priority terlebih dahulu. Pastikan fitur filter belum dikerjakan pada titik awal ini.
-
-Sebelum menyalin, siapkan data contoh memakai command proyek yang sudah ada:
-- minimal satu task dengan status done;
-- minimal satu task dengan status lain yang valid.
-
-Nama command add/update/done mengikuti proyek. Jika belum diketahui, minta Codex menjelaskan command yang sudah ada, tanpa mengimplementasikan filter.
-
-Buat GEMINI.md di root task-tracker, berisi:
-
-```markdown
-@./AGENTS.md
-```
-
-Gemini CLI memakai GEMINI.md secara default; impor tersebut memberikan aturan proyek yang sama dengan yang digunakan Codex.
-
-Tutup sesi agent, simpan semua file, lalu lewat File Explorer salin folder task-tracker menjadi dua folder saudara:
-- task-tracker-codex
-- task-tracker-gemini
-
-Kedua salinan dibuat SEBELUM salah satu agent mengerjakan filter. Jangan menyalin hasil Codex untuk dijadikan titik awal Gemini. Sertakan kode, package.json, lockfile, AGENTS.md, GEMINI.md, konfigurasi, dan data contoh yang sama. node_modules boleh tidak disalin; instal ulang di masing-masing salinan.
-
-Jika penyimpanan data memakai path absolut atau database bersama, pastikan pengujian list tidak mengubah dataset bersama; jangan mengaku datanya terisolasi hanya karena folder kode disalin.
-
-Bicara:
-“Saya membuat dua salinan dari kondisi awal yang sama. Keduanya menerima fitur, aturan proyek, data contoh, dan urutan prompt yang sama. Saya juga mencatat model aktif karena hasil dipengaruhi model, bukan hanya harness.”
-
-### 5B. Jalankan Codex pada salinan pertama
-
-VS Code > File > Open Folder > task-tracker-codex.
-Terminal biasa:
-
-```powershell
-npm ci
-npx tsc --noEmit
-codex
-```
-
-Gunakan npm install jika proyek tidak memiliki package-lock.json. Jika npm ci mengeluhkan lockfile yang tidak cocok, perbaiki titik awal dan gunakan lockfile hasil perbaikan yang sama di kedua salinan.
-
-Prompt perencanaan:
-
-```text
-Baca instruksi proyek yang aktif.
-Buat rencana menambahkan filter list --status done.
-Tanpa --status, list harus tetap menampilkan semua task.
-Dengan --status done, hanya task berstatus done yang ditampilkan.
-Status tidak valid atau --status tanpa nilai harus menghasilkan pesan yang jelas
-dan exit code bukan nol. Hasil kosong harus ditangani dengan jelas.
-Ikuti struktur CLI proyek, jangan mengubah data ketika menjalankan list,
-dan jangan menambah dependency tanpa kebutuhan.
-Sebutkan file terdampak dan cara menguji.
-Berhenti setelah rencana; jangan mengedit file dulu.
-```
-
-Catat kualitas rencana. Kemudian kirim:
-
-```text
-Implementasikan rencana tersebut.
-Setelah implementasi pertama selesai, jalankan npx tsc --noEmit.
-Tampilkan output dan jumlah diagnostic TypeScript yang muncul.
-Berhenti di checkpoint ini sebelum memperbaiki error hasil pemeriksaan,
-supaya saya bisa mencatat kondisi implementasi pertama.
-```
-
-Di terminal kedua, verifikasi:
-
-```powershell
-npx tsc --noEmit
-```
-
-Catat error pemeriksaan pertama meskipun jumlahnya nol. Sesudah dicatat, kirim:
-
-```text
-Lanjutkan dari checkpoint. Perbaiki error yang ditemukan jika ada,
-lalu jalankan npx tsc --noEmit dan uji semua kriteria fitur.
-Tampilkan command, hasil, file yang diubah, dan sisa masalah.
-```
-
-Jika perlu arahan korektif tambahan di luar tiga prompt terjadwal ini, catat sebagai intervensi manual.
-
-### 5C. Jalankan Gemini pada salinan kedua
-
-VS Code > File > Open Folder > task-tracker-gemini.
-Terminal biasa:
-
-```powershell
-npm ci
-npx tsc --noEmit
-gemini
-```
-
-Login melalui opsi Sign in with Google yang sesuai akunmu. Setelah antarmuka Gemini terbuka, periksa konteks:
-
-```text
-/memory show
-```
-
-Pastikan isi AGENTS.md dari impor GEMINI.md terlihat. Jika tidak, periksa letak file dan mulai sesi baru. Catat file instruksi global lain yang ikut termuat.
-
-Kirim tiga prompt yang SAMA PERSIS dan dalam urutan yang sama seperti percobaan Codex: perencanaan, implementasi pertama dengan checkpoint, lalu penyelesaian. Catat hasilnya secara terpisah.
-
-### 5D. Perintah uji fitur
-
-Perintah aplikasi ditentukan oleh package.json, bukan oleh nama harness.
-
-Jika script dev menjalankan CLI, misalnya "dev": "tsx src/index.ts", gunakan:
-
-```powershell
-npm run dev -- list
-npm run dev -- list --status done
-npm run dev -- list --status tidak-valid
-$LASTEXITCODE
-npm run dev -- list --status
-$LASTEXITCODE
-npx tsc --noEmit
-```
-
-Jika script start menjalankan CLI, pakai npm start -- list --status done.
-Jika tanpa script dan file entry point-nya src/cli.ts, pakai npx tsx src/cli.ts list --status done.
-Jangan memakai contoh npm run dev bila script dev sebenarnya menjalankan server frontend.
-
-Periksa:
-1. list tanpa opsi menampilkan semua task.
-2. list --status done hanya menampilkan task done.
-3. Status tidak valid ditolak dengan pesan jelas dan exit code bukan nol.
-4. --status tanpa nilai ditolak dengan jelas.
-5. Ketika tidak ada task done, hasil kosong disampaikan dengan benar.
-6. Menjalankan list tidak mengubah data.
-7. npx tsc --noEmit akhirnya lulus.
-
-Untuk kasus kosong, gunakan fixture atau data uji terpisah yang didukung proyek. Jangan menghapus data utama demi pengujian.
-
-Bicara:
-“Saya mengecek hasil compiler dan fungsi filternya. Compiler yang bersih belum menjamin logika filter benar, jadi saya juga menjalankan command dengan status done, status tidak valid, dan tanpa opsi.”
-
-## 6. Tabel penilaian
-
-Isi berdasarkan demo, bukan perkiraan.
-
-| Aspek | Codex CLI | Gemini CLI |
-|---|---|---|
-| Versi CLI | ... | ... |
-| Model aktif / mode auto | ... | ... |
-| Error tsc pada baseline | ... | ... |
-| Kualitas rencana, skor 1–5 | ... | ... |
-| Alasan skor rencana | ... | ... |
-| Error tsc sesudah implementasi pertama | ... | ... |
-| Error tsc pada hasil akhir | ... | ... |
-| Intervensi manual di luar alur terjadwal | ... | ... |
-| Rincian intervensi | ... | ... |
-| Kenyamanan alur kerja, skor 1–5 | ... | ... |
-| Alasan skor kenyamanan | ... | ... |
-| Hasil uji perilaku filter | ... | ... |
-
-Definisi sederhana:
-- Error tsc dihitung sebagai jumlah diagnostic error, bukan jumlah baris output atau jumlah file.
-- Satu intervensi manual adalah satu arahan korektif tambahan atau satu tindakan edit kode manual. Pilih definisi ini dan pakai konsisten.
-- Prompt awal, tiga tahap terjadwal, dan klik persetujuan normal tidak dihitung sebagai intervensi korektif. Catat persetujuan terpisah bila memengaruhi kenyamanan.
-- Rencana dinilai dari ketepatan file, parsing argumen, validasi status, kompatibilitas list lama, dan verifikasi.
-- Kenyamanan dinilai dari kemudahan membaca rencana, meninjau diff, memberi persetujuan, dan melanjutkan dari error.
-- Catat model dan versi; satu percobaan tidak membuktikan harness tertentu selalu unggul.
-
-## 7. Naskah kesimpulan satu paragraf
-
-Ganti semua bagian dalam kurung siku menggunakan hasil nyata:
-
-“Pada percobaan fitur list --status done, Codex CLI menghasilkan rencana yang [temuan], sedangkan Gemini CLI [temuan]. Setelah implementasi pertama, pemeriksaan TypeScript menunjukkan [jumlah] error pada Codex dan [jumlah] error pada Gemini; hasil akhirnya masing-masing [jumlah] dan [jumlah] error. Saya memberikan [jumlah] intervensi tambahan pada Codex dan [jumlah] pada Gemini. Dari sisi alur kerja, saya lebih nyaman menggunakan [nama harness] karena [alasan konkret]. Kesimpulan ini berlaku untuk proyek, model, versi, dan percobaan yang saya gunakan.”
-
-Jika keduanya sama-sama bagus, sampaikan hasil setara dengan alasan yang terlihat.
-
-
+| 1 | jichi + host infrastruktur | IP/route, forwarding, NAT, ping |
+| 2 | tengen | Validasi exit 0, subnet lokal tanpa pool, daemon UDP 67 |
+| 3 | jichi, tengen, Itadori, Ino | Relay, ACK dua subnet, gateway |
+| 4 | tengen + empat client Network 2 | Class/pool dan IP sesuai identitas |
+| 5 | tengen, Ino, Kusakabe, Miwa | 1800/43200 detik, DNS/search |
+| 6 | tengen + Kugisaki | MAC, reservasi dan dua transaksi `.3.99` |
+| 7 | tengen + delapan client | Audit client/server PASS dan ACK Kugisaki |
+| 8 | tengen + Ino | DORA satu xid, server ID, yiaddr, lease, giaddr |
+| 9 | jichi + Itadori + tengen | Relay mati/gagal DHCP, server hidup, pemulihan |
+| 10 | jichi + tengen + delapan client | BOOT OK baru, daemon otomatis, DHCP baru dan audit |
+
+## Cakupan pemeriksaan panduan
+
+Pemeriksaan lokal pada revisi ini:
+
+| Pemeriksaan | Cakupan |
+|---|---|
+| Sintaks dan konsistensi | Seluruh 42 blok Bash/sh kedua README, tujuh script yang disalin identik dengan sumber, dan ShellCheck tanpa warning. |
+| DHCP | Parser ISC DHCP 4.4.3-P1 menerima konfigurasi final; kandidat salah tidak mengganti konfigurasi aktif dan restart gagal mengembalikan konfigurasi sebelumnya. |
+| Client dan lease | Hook ACK, delapan kebijakan client, gateway/DNS/search/lease salah, binding terbaru, expired, dan duplikasi diuji dengan mock/fixture. |
+| Boot jichi/tengen | Pemulihan `/root`, cache lama, dpkg offline tanpa APT, ID boot baru, cache rusak, kegagalan pemasangan/layanan, serta console sesudah boot gagal diuji dengan fixture. |
+| Instalasi dpkg nyata | Dua paket kecil beserta dependensinya dipasang ke root terisolasi tanpa jaringan; tidak memasang paket ke sistem lab. |
+
+Pengujian lokal tersebut tidak menjalankan proyek GNS3 pengguna atau membuktikan trafik DHCP nyata. Kriteria nomor 1-10 tetap harus dibuktikan melalui command dan capture di lab.
+
+## Membaca hasil dan error
+
+- Ping `1.1.1.1` menguji akses eksternal berdasarkan IP. Resolusi domain internet membutuhkan DNS BIND dari soal 11-12.
+- `echo $?` harus langsung mengikuti command yang ingin diperiksa; `0` berarti command tersebut selesai sukses.
+- Hasil audit FAIL menyebut syarat yang belum sesuai. Tampilkan hasil nyata dan selesaikan penyebabnya sebelum menyatakan soal berhasil.
+- Jika console terlalu panjang, ambil beberapa screenshot berurutan. Untuk nomor 8, pertahankan MAC dan xid yang sama pada paket yang dijelaskan.
+- Command di file ini belum dijalankan pada proyek GNS3 pengguna. Penjelasan dan nilai target merupakan panduan demonstrasi, bukan output eksekusi yang direkayasa.
