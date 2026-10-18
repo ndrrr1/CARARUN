@@ -1,14 +1,3 @@
-# README Demo dan Command Cek - Modul 3 K12, Soal 1-10
-
-**Revisi 18 Oktober 2026: pemeriksaan nomor 10 mencocokkan status dan ID boot terbaru pada jichi/tengen.**
-
-**Prefix: 192.217 | kelompok: K12 | domain-search: k12.com | mask: /24.**
-
-Gunakan setelah **README_KONFIGURASI.md** selesai. Setiap soal memuat **console tujuan, command cek, hasil yang diharapkan dan penjelasan saat demo**. Seluruh script `/root/m3-...` yang dipanggil sudah dibuat oleh README konfigurasi.
-
-Untuk soal 6, 8, 9 dan 10, bagian **Pemicu demo** menyediakan transaksi DHCP, capture, gangguan atau restart yang memang diperlukan untuk pembuktian. Bagian **Cek hasil** memeriksa hasil pengujian tersebut. File ini tidak mengulang blok instalasi atau penulisan konfigurasi.
-
-Hasil di bawah adalah kriteria keberhasilan. Ambil screenshot dari output node setelah command dijalankan. Klaim berhasil mengikuti hasil nyata yang muncul di console.
 
 ## 1. IP, gateway, forwarding, NAT dan konektivitas
 
