@@ -47,35 +47,66 @@ Folder 06 menggunakan post/user khusus yang disiapkan terpisah, sehingga data pa
 
 > Saya menghapus post dan membuktikan komentarnya ikut hilang. Kemudian saya menghapus user khusus demo; post dan komentarnya ikut terhapus, sedangkan post milik user lain tetap tersedia. Ini membuktikan relasi cascade bekerja sesuai model. Demonstrasi CRUD, pagination, statistik harian, bulk create, branch Neon, dan validasi selesai.
 
-## 6. Challenge 5 — eksperimen branch Neon
+2. Tambahkan satu baris pada model Comment
 
-Ini langkah pada akun Neon milikmu. Paket tidak membuat branch cloud tanpa akses akun. Lakukan tahap ini setelah folder 04 dan sebelum bonus/cascade jika rekaman harus mengikuti nomor soal.
-
-1. Pada parent yang sedang dipakai, catat jumlah User/Post dan kolom Comment di SQL Editor:
-
-```sql
-SELECT COUNT(*) AS total_user FROM "User";
-SELECT COUNT(*) AS total_post FROM "Post";
-SELECT column_name FROM information_schema.columns
-WHERE table_schema='public' AND table_name='Comment'
-ORDER BY ordinal_position;
-```
-
-2. Buat branch baru melalui **Branches → New branch**, pilih parent tersebut dan salinan **Current data**. Beri nama misalnya `demo-modul-4`.
-3. Hentikan server dengan Ctrl+C. Ubah kedua URL `.env` ke pooled/direct branch baru. Isi `MAIN_DATABASE_URL` dengan URL direct parent jika ingin menjalankan verifikasi.
-4. Karena branch menyalin tabel yang sudah ada, migrasi awal bisa sudah applied. Untuk memperlihatkan migrasi baru, tambahkan field opsional berikut di dalam model Comment pada `prisma/schema.prisma`:
-
-```prisma
+Di VS Code, buka prisma/schema.prisma. Cari model Comment, lalu tambahkan:
 demoNote String?
-```
 
-5. Jalankan:
+Posisinya boleh tepat setelah content. Model lengkapnya menjadi:
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  demoNote  String?
+  postId    Int
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-```powershell
+  @@index([postId])
+  @@index([authorId])
+}
+
+Artinya:
+- demoNote: nama kolom baru.
+- String: isinya berupa teks.
+- ?: kolom boleh kosong, sehingga komentar yang sudah ada tetap valid.
+Simpan dengan Ctrl+S.
+
+3. Terapkan perubahan ke database branch baru
+
+Di terminal proyek, jalankan:
 npm run db:migrate -- --name demo_branch_note
+
+Perintah ini membuat file migrasi dan menerapkan perubahan schema ke database yang dituju .env. Setelah berhasil, jalankan:
 npm run db:generate
+
+Perintah kedua memperbarui Prisma Client agar mengenali kolom baru. Pada Prisma 7, generate dijalankan terpisah. prisma.io
+
+4. Tunjukkan buktinya di Neon
+
+Buka SQL Editor, pilih branch demo-modul-4, lalu jalankan:
+SELECT column_name
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'Comment'
+  AND column_name = 'demoNote';
+
+Kemudian ganti pilihan branch di SQL Editor ke parent, lalu jalankan SQL yang sama.
+
+Hasil yang diharapkan:
+Tempat menjalankan SQL	Hasil
+Branch demo-modul-4	Muncul baris demoNote
+Parent/database awal	Tidak ada baris hasil
+
+
+Perbedaan itu menjadi bukti bahwa migrasi hanya mengubah branch percobaan. Jumlah User/Post pada parent juga bisa dibandingkan dengan catatan sebelum eksperimen.
+
+5. Lanjutkan demo aplikasi
+
+Kembali ke terminal:
 npm run demo
-```
 
 6. Peluncur membuat sesi baru pada branch tersebut. Impor ulang `postman/POSTMAN-DEMO-SIAP.json` yang baru dibuat dan pilih collection sesi terbaru seperti nama pada terminal.
 7. Bandingkan kolom Comment pada parent dan branch. `demoNote` hanya muncul di branch percobaan; catatan jumlah/data parent tetap sama selama tidak ada proses lain menulis ke parent.
