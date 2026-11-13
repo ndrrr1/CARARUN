@@ -1,533 +1,280 @@
-# K12 - Contekan Demo CIDR
+# Demo Pembuktian Modul 4 — MLBB Shop
 
-Buka CPT dan spreadsheet. Ikuti urutan di bawah; kotak kutipan berisi kalimat yang bisa dibaca saat demo.
+Ikuti nomor **Spesifikasi Fitur 1–7** pada modul. Request bernomor merujuk collection Postman; body-nya sudah terisi. Request tambahan dibuat di tab baru.
 
-Gunakan [K12_Modul4_CIDR_Rapi.pkt](K12_Modul4_CIDR_Rapi.pkt) versi yang sudah dilengkapi WAN/NAT, dengan **Packet Tracer 9.0.1 atau versi kompatibel**. Pilih **Realtime** dan tunggu link aktif. Urutan demonya: **topologi → hitungan → pohon CIDR → routing → ping internal → jaringan luar**.
+## Persiapan
 
-Untuk router, buka **CLI**. Untuk client, buka **Desktop → Command Prompt**. Jalankan `enable` ketika prompt router masih `NamaRouter>`. Setelah menjadi `NamaRouter#`, ketik command tanpa menyalin nama router atau tanda `#`.
+**Terminal VS Code, folder `mlbb-shop` yang berisi `package.json`:**
 
-## 1. Pembuka
+Jika koneksi Neon belum disiapkan, jalankan `npm.cmd run start:neon`, isi koneksi, lalu Ctrl+C setelah siap. Sebelum demo:
 
-Tunjukkan topologi, lalu ucapkan:
-
-> “Kami menggunakan CIDR dengan prefix 192.217.x.x. Ada 25 subnet internal. Kebutuhan IP dihitung dari jumlah host ditambah interface router.”
-
-Cyberia menjadi pintu keluar. Wired menjadi pusat percabangan.
-
-| Bagian yang ditunjukkan | Penjelasan saat demo |
-| --- | --- |
-| Cyberia | Penghubung jaringan internal ke Cloud dan tempat konfigurasi NAT. |
-| Wired | Meneruskan trafik ke cabang Psyche, Copland, Schumann, Navi, dan Tachibana. |
-| Router cabang dan client | Router menjadi gateway segmen; setiap ikon client mewakili jumlah host pada label. |
-
-Jumlah IP dihitung untuk seluruh kebutuhan host pada soal, meskipun CPT hanya menampilkan perangkat perwakilan. Interface router dalam setiap subnet ikut dihitung. Switch Layer 2 pada proyek ini tidak diberi IP manajemen, sehingga tidak ditambahkan ke kebutuhan alamat.
-
-## 2. Jelaskan satu contoh hitungan: A25
-
-Buka tabel A25 pada spreadsheet.
-
-> “Lain membutuhkan 57 host dan Mika 4 host. Ditambah satu interface router, totalnya 62. Kami memakai /26 karena menyediakan 62 alamat usable.”
-
-```text
-57 + 4 + 1 = 62
-2^6 - 2 = 62
-32 - 6 = /26
+```powershell
+npm.cmd run demo:reset:neon
+npm.cmd run dev:neon
 ```
 
-| Yang ditunjukkan | Nilai |
-| --- | --- |
-| Network A25 | 192.217.15.128/26 |
-| Netmask | 255.255.255.192 |
-| Gateway | 192.217.15.129 |
-| IP Lain | 192.217.15.130 |
-| IP Mika | 192.217.15.131 |
-| Broadcast | 192.217.15.191 |
+**Postman:** import `postman/MLBB-Shop-28-Testcase.postman_collection.json`. Gunakan alamat server yang muncul di terminal, biasanya `http://localhost:3000`.
 
-Kalau ditanya “kenapa bukan /27?”: **/27 hanya menyediakan 30 alamat usable, sehingga tidak cukup.**
+**Bukti awal — tunjukkan sebelum mengirim request:**
 
-Supaya urutan hitungannya jelas, jelaskan:
-
-1. Tentukan kebutuhan: **host + interface router**.
-2. Cari bit host terkecil yang memenuhi `2^h − 2 ≥ kebutuhan`. Dua alamat digunakan untuk network dan broadcast.
-3. Hitung prefix: `32 − h`. Pada A25, `h = 6`, sehingga prefix `/26`.
-4. Ubah prefix ke mask: `/26 = 255.255.255.192`.
-5. Hitung ukuran blok: `256 − 192 = 64` alamat. Network .128 berakhir pada `.128 + 64 − 1 = .191`.
-6. Rentang usable A25 adalah **192.217.15.129–192.217.15.190**. Gateway memakai .129, Lain .130, dan Mika .131.
-
-Pemilihan prefix menentukan kapasitas subnet. Pemilihan network ID .128 mengikuti posisi A25 dalam pohon alokasi CIDR.
-
-| Contoh lain | Kebutuhan | Prefix dan alasannya |
+| Ketentuan modul | Tunjukkan di mana | Bukti yang terlihat |
 | --- | --- | --- |
-| A4: Karl dan Lin | 700 + 180 + 1 = 881 | /22 menyediakan 1.022 usable; /23 hanya 510. |
-| A9: Omnipresence dan Denpa | 510 + 3 + 1 = 514 | Memerlukan /22 karena /23 hanya 510 usable. |
-| A3: Wired, Psyche, Copland, Schumann | 0 + 4 = 4 | Memerlukan /29; /30 hanya dua usable. |
-| A23: Semi | 14 + 1 = 15 | Memerlukan /27; /28 hanya 14 usable. |
+| Stack wajib | VS Code: `package.json`, `src/lib/database.ts` | Express 5, TypeScript, Prisma 7, adapter Neon |
+| Schema | VS Code: `prisma/schema.prisma` | Hero, Skin, Player, PlayerHero; empat enum; unique, default saldo, dan cascade |
+| Dataset dan seed | VS Code: `src/lib/seed-data.ts`; terminal baru: `npm.cmd run db:studio` | TRUNCATE + createMany; di Studio ada 133 Hero, 892 Skin, 3 Player, 4 PlayerHero |
 
-<details>
-<summary><strong>Tabel perhitungan seluruh subnet A1–A25</strong></summary>
+## 1. Middleware
 
-| Subnet / segmen | Host + interface router | IP dibutuhkan | Kapasitas usable | Network ID / prefix |
-| --- | --- | --- | --- | --- |
-| A1 — Cyberia–Switch1–JJ, MyuMyu | 125 + 1 | 126 | 2^7 − 2 = 126 | 192.217.36.0/25 |
-| A2 — Cyberia–Wired | 0 + 2 | 2 | 2^2 − 2 = 2 | 192.217.36.128/30 |
-| A3 — Wired–Switch2–Psyche, Copland, Schumann | 0 + 4 | 4 | 2^3 − 2 = 6 | 192.217.28.16/29 |
-| A4 — Psyche–Switch3–Karl, Lin | 880 + 1 | 881 | 2^10 − 2 = 1022 | 192.217.16.0/22 |
-| A5 — Copland–Juri | 31 + 1 | 32 | 2^6 − 2 = 62 | 192.217.22.0/26 |
-| A6 — Copland–Switch4–Masayuki | 300 + 1 | 301 | 2^9 − 2 = 510 | 192.217.20.0/23 |
-| A7 — Schumann–Akashic | 3 + 1 | 4 | 2^3 − 2 = 6 | 192.217.28.0/29 |
-| A8 — Schumann–Accela | 0 + 2 | 2 | 2^2 − 2 = 2 | 192.217.28.8/30 |
-| A9 — Accela–Switch5–Omnipresence, Denpa | 513 + 1 | 514 | 2^10 − 2 = 1022 | 192.217.24.0/22 |
-| A10 — Wired–Navi | 0 + 2 | 2 | 2^2 − 2 = 2 | 192.217.34.64/30 |
-| A11 — Navi–Switch6–Alice, Reika | 253 + 1 | 254 | 2^8 − 2 = 254 | 192.217.32.0/24 |
-| A12 — Navi–Switch7–Taro | 57 + 1 | 58 | 2^6 − 2 = 62 | 192.217.34.0/26 |
-| A13 — Navi–Switch8–Yasuo, Miho, Kuma | 142 + 1 | 143 | 2^8 − 2 = 254 | 192.217.33.0/24 |
-| A14 — Wired–Tachibana | 0 + 2 | 2 | 2^2 − 2 = 2 | 192.217.2.0/30 |
-| A15 — Tachibana–Switch9–Collective, Ghost | 266 + 1 | 267 | 2^9 − 2 = 510 | 192.217.0.0/23 |
-| A16 — Tachibana–Deus | 0 + 2 | 2 | 2^2 − 2 = 2 | 192.217.8.128/30 |
-| A17 — Deus–Switch10–Lilith, Specter | 98 + 1 | 99 | 2^7 − 2 = 126 | 192.217.8.0/25 |
-| A18 — Deus–Protocol7 | 0 + 2 | 2 | 2^2 − 2 = 2 | 192.217.12.64/30 |
-| A19 — Protocol7–Switch11–Chisa, Hodgeson | 32 + 1 | 33 | 2^6 − 2 = 62 | 192.217.12.0/26 |
-| A20 — Protocol7–Knights | 0 + 2 | 2 | 2^2 − 2 = 2 | 192.217.14.8/30 |
-| A21 — Knights–Eiri | 2 + 1 | 3 | 2^3 − 2 = 6 | 192.217.14.0/29 |
-| A22 — Knights–Phantoma | 0 + 2 | 2 | 2^2 − 2 = 2 | 192.217.15.32/30 |
-| A23 — Phantoma–Switch12–Semi | 14 + 1 | 15 | 2^5 − 2 = 30 | 192.217.15.0/27 |
-| A24 — Phantoma–Shibuya | 0 + 2 | 2 | 2^2 − 2 = 2 | 192.217.15.192/30 |
-| A25 — Shibuya–Switch13–Lain, Mika | 61 + 1 | 62 | 2^6 − 2 = 62 | 192.217.15.128/26 |
+**Jalankan di Postman; lihat juga terminal server.**
 
-Total kebutuhan internal: **2.777 host + 37 interface router = 2.814 IP**. Subnet transit tanpa client tetap membutuhkan alamat bagi interface router yang terhubung.
-
-</details>
-
-## 3. Jelaskan pohon CIDR
-
-Buka pohon pada laporan atau sheet Penggabungan - CIDR.
-
-> “Kami menggabungkan subnet dari cabang terluar menuju pusat. Contohnya A25 dan A24 menjadi B1. Penggabungan dilanjutkan sampai blok induk I1, yaitu 192.217.0.0/18.”
-
-```mermaid
-flowchart TD
-    C1["C1: 192.217.15.0/24"] --> B1["B1: 192.217.15.128/25"]
-    C1 --> B2["B2: 192.217.15.0/26"]
-    B1 --> A25["A25: 192.217.15.128/26"]
-    B1 --> A24["A24: 192.217.15.192/30"]
-    B2 --> A23["A23: 192.217.15.0/27"]
-    B2 --> A22["A22: 192.217.15.32/30"]
-```
-
-Pada pohon alokasi ini, anak ditempatkan pada bagian berbeda di dalam blok induk dan mengikuti batas network. Prefix induk satu tingkat lebih pendek dari prefix anak yang terpendek. Seluruh tahap B-I dapat ditunjukkan pada spreadsheet.
-
-Urutan yang dijelaskan dari contoh pohon:
-
-1. **A25 /26 + A24 /30 → B1 /25**. A25 menempati .128–.191, sedangkan A24 memakai .192–.195 di dalam B1 .128–.255.
-2. **A23 /27 + A22 /30 → B2 /26**. Keduanya ditempatkan dalam blok .0–.63.
-3. **B1 /25 + B2 /26 → C1 /24**. C1 mencakup 192.217.15.0–192.217.15.255.
-4. Lanjutkan penggabungan cabang lain sampai **I1 = 192.217.0.0/18**.
-
-> “CIDR membentuk kelompok subnet bertingkat. Setiap anak harus masuk ke blok induknya dan tidak bertumpuk dengan anak lain. Blok induk juga dapat memuat ruang cadangan.”
-
-Aturan memperpendek prefix di atas menjelaskan metode pohon alokasi biner yang dipakai. Secara umum, ringkasan CIDR tetap ditentukan oleh bit prefix bersama dan batas network, sehingga alamatnya harus diperiksa sebelum digabungkan.
-
-**Ingat:** /18 adalah blok agregat keseluruhan. Mask pada Mika tetap /26.
-
-<details>
-<summary><strong>Urutan penggabungan lengkap B1–I1</strong></summary>
-
-| Tahap | Anak pertama | Anak kedua | Network ID / prefix induk |
-| --- | --- | --- | --- |
-| B1 | A25 /26 | A24 /30 | 192.217.15.128/25 |
-| B2 | A23 /27 | A22 /30 | 192.217.15.0/26 |
-| B3 | A21 /29 | A20 /30 | 192.217.14.0/28 |
-| B4 | A19 /26 | A18 /30 | 192.217.12.0/25 |
-| B5 | A17 /25 | A16 /30 | 192.217.8.0/24 |
-| B6 | A15 /23 | A14 /30 | 192.217.0.0/22 |
-| B7 | A7 /29 | A8 /30 | 192.217.28.0/28 |
-| B8 | A5 /26 | A6 /23 | 192.217.20.0/22 |
-| B9 | A10 /30 | A12 /26 | 192.217.34.0/25 |
-| B10 | A11 /24 | A13 /24 | 192.217.32.0/23 |
-| B11 | A1 /25 | A2 /30 | 192.217.36.0/24 |
-| C1 | B1 /25 | B2 /26 | 192.217.15.0/24 |
-| C2 | B7 /28 | A3 /29 | 192.217.28.0/27 |
-| C3 | B8 /22 | A4 /22 | 192.217.16.0/21 |
-| C4 | B9 /25 | B10 /23 | 192.217.32.0/22 |
-| D1 | B3 /28 | C1 /24 | 192.217.14.0/23 |
-| D2 | C2 /27 | A9 /22 | 192.217.24.0/21 |
-| D3 | C4 /22 | B11 /24 | 192.217.32.0/21 |
-| E1 | B4 /25 | D1 /23 | 192.217.12.0/22 |
-| E2 | C3 /21 | D2 /21 | 192.217.16.0/20 |
-| F1 | B5 /24 | E1 /22 | 192.217.8.0/21 |
-| G1 | B6 /22 | F1 /21 | 192.217.0.0/20 |
-| H1 | G1 /20 | E2 /20 | 192.217.0.0/19 |
-| I1 | H1 /19 | D3 /21 | 192.217.0.0/18 |
-
-I1 mencakup 192.217.0.0–192.217.63.255. Alamat interface dan client tetap menggunakan subnet daun A1–A25, bukan mask /18 untuk semuanya.
-
-</details>
-
-## 4. Jelaskan routing
-
-Buka **Wired → CLI**. Jalankan per baris:
-
-```text
-enable
-show ip interface brief
-show ip route
-show ip route 192.217.15.131
-```
-
-| Command | Yang dijelaskan |
-| --- | --- |
-| `show ip interface brief` | IP serta Status dan Protocol pada interface yang dipakai. |
-| `show ip route` | Jaringan terhubung, static route, default route, dan next hop. |
-| `show ip route 192.217.15.131` | Rute yang dipilih untuk menuju Mika. |
-
-Periksa interface yang terpakai. Interface tanpa sambungan yang sengaja dimatikan dapat tetap `administratively down`. Jika keluaran berhenti pada `--More--`, tekan **Space** untuk halaman berikutnya atau **q** untuk keluar dari tampilan.
-
-Lalu ucapkan:
-
-> “IP Mika berada dalam 192.217.0.0/20. Wired mengirimkannya ke 192.217.2.2, yaitu Tachibana. Router berikutnya meneruskan paket sesuai routing masing-masing.”
-
-Baris konfigurasi yang menjelaskan contoh tersebut:
-
-```text
-ip route 192.217.0.0 255.255.240.0 192.217.2.2
-```
-
-Arti baris tersebut: `192.217.0.0` adalah network tujuan, `255.255.240.0` adalah mask `/20`, dan `192.217.2.2` adalah **next hop Tachibana**. IP Mika termasuk dalam rentang agregat 192.217.0.0–192.217.15.255.
-
-| Router yang dilewati | Rute yang mencakup Mika | Diteruskan ke |
+| Buktikan | Jalankan | Hasil yang ditunjukkan |
 | --- | --- | --- |
-| Wired | 192.217.0.0/20 | Tachibana — 192.217.2.2. |
-| Tachibana | 192.217.8.0/21 | Deus — 192.217.8.130. |
-| Deus | 192.217.12.0/22 | Protocol7 — 192.217.12.66. |
-| Protocol7 | 192.217.14.0/23 | Knights — 192.217.14.10. |
-| Knights | 192.217.15.0/24 | Phantoma — 192.217.15.34. |
-| Phantoma | 192.217.15.128/25 | Shibuya — 192.217.15.194. |
-| Shibuya | 192.217.15.128/26 | LAN A25 melalui Fa0/1, menuju Mika 192.217.15.131. |
+| Server dan koneksi Neon | Request **01**: `GET /health` | 200; `status: true`, database `connected`, mode `neon` |
+| Logger | Lihat terminal setelah request 01 | Ada method, URL, dan status: `GET /health 200` |
+| Error handler | Request tambahan: `GET /api/heroes/999` | 404; JSON berisi `status: false` dan `message` |
+| notFound | Request tambahan: `GET /api/ngawur` | 404; format response gagal yang sama |
 
-Tabel ini menjelaskan isi rancangan routing untuk satu tujuan. Saat demo, cukup jelaskan baris Wired, lalu tunjukkan bahwa penerusan berlanjut sampai Shibuya.
+**Penjelasan singkat:** setiap request dicatat dan setiap error memakai format yang ditentukan modul. Tunjukkan `HttpError`, `notFound`, dan `errorHandler` di `src/middleware/errors.ts`.
 
-Jika ditanya rute balik:
+## 2. Hero
 
-> “Router cabang menggunakan default route ke induknya. Contohnya, default route Shibuya menuju Phantoma.”
+**Jalankan di Postman, urut seperti tabel.**
 
-Contoh default route pada **Shibuya**:
-
-```text
-ip route 0.0.0.0 0.0.0.0 192.217.15.193
-```
-
-Tujuan yang tidak memiliki rute lebih spesifik diarahkan ke Phantoma. Paket balasan juga memerlukan rute menuju sumber, sehingga gateway client dan rute balik sama-sama diperiksa.
-
-Jika ditanya kode routing: **C = connected, L = IP router sendiri, S = static, S* = default static.**
-
-Jika ditanya Null0:
-
-> “Null0 membuang paket ke ruang agregat yang tidak memiliki rute lebih spesifik agar tidak terjadi loop.”
-
-Contoh pada Wired adalah `ip route 192.217.0.0 255.255.192.0 Null0 254`. Router mendahulukan **prefix paling spesifik**. Angka 254 merupakan administrative distance, yang dibandingkan untuk kandidat rute dengan prefix yang sama.
-
-## 5. Jalankan tiga jenis ping internal
-
-### A. Router ke router
-
-Pada **Wired → CLI**:
-
-```text
-ping 192.217.2.2
-ping 192.217.15.194
-```
-
-> “Ping pertama dari Wired ke router tetangga Tachibana. Ping kedua menuju interface Shibuya yang berada di cabang jauh, untuk memeriksa penerusan antarrouter.”
-
-Ping tetangga memeriksa sambungan transit A14. Ping ke Shibuya melewati beberapa router dan memerlukan jalur routing serta jalur balasan.
-
-### B. Router ke client
-
-Masih pada **Wired → CLI**:
-
-```text
-ping 192.217.15.131
-```
-
-> “Ini ping dari Wired ke client Mika yang berada di cabang Shibuya.”
-
-Tujuan pemeriksaan mencakup jalur antarrouter, interface LAN Shibuya, alamat Mika, dan gateway Mika. Jika perlu menjelaskan pilihan rutenya, gunakan `show ip route 192.217.15.131` pada Wired.
-
-### C. Client ke client
-
-| Client | IP / prefix | Gateway |
+| Buktikan | Jalankan | Hasil yang ditunjukkan |
 | --- | --- | --- |
-| Omnipresence, A9 | 192.217.24.2/22 | 192.217.24.1 — Accela. |
-| Mika, A25 | 192.217.15.131/26 | 192.217.15.129 — Shibuya. |
+| Pagination default | Tambahan: `GET /api/heroes` | 10 data; metadata currentPage 1, limit 10, totalItems 133, totalPages 14 |
+| Pagination halaman 2 | Tambahan: `GET /api/heroes?page=2&limit=5` | 5 data, id 6–10; currentPage 2, totalItems 133, totalPages 27 |
+| Filter role | Request **02** | Semua MARKSMAN; tampil 5 data, totalItems 20 |
+| Search | Request **03**, lalu tambahan `GET /api/heroes?search=LA` | Keduanya totalItems 10; membuktikan search tidak peka kapital |
+| Detail beserta skin | Request **04** | Layla, 11 skin pada `data.skins` |
+| Hero tidak ditemukan | Request **05** | 404 |
+| Tambah hero | Request **06** | 201; Collie id 134 |
+| Nama duplikat | Request **07** | 409 |
+| Field wajib kurang | Request **08** | 400 |
 
-Buka **Omnipresence → Desktop → Command Prompt**:
+**Tunjukkan kode:** `listHeroes`, `heroDetail`, dan `createHero` di `src/controllers/catalog.controller.ts`: filter, skip/take, `include`, serta validasi sebelum create.
 
-```text
-ipconfig /all
-ping 192.217.24.1
-ping 192.217.15.131
-tracert 192.217.15.131
-```
+## 3. Skin
 
-> “Saya periksa IP client, lalu gateway, kemudian koneksi ke Mika pada subnet berbeda. Tracert dipakai untuk melihat hop yang dilewati.”
+**Jalankan di Postman.**
 
-| Command | Fungsi |
-| --- | --- |
-| `ipconfig /all` | Memeriksa IP, mask, dan gateway Omnipresence. |
-| Ping 192.217.24.1 | Memeriksa LAN Omnipresence menuju gateway Accela. |
-| Ping 192.217.15.131 | Memeriksa komunikasi menuju Mika di subnet berbeda. |
-| `tracert 192.217.15.131` | Menelusuri hop untuk membantu menjelaskan atau mencari gangguan jalur. |
-
-Tes arah sebaliknya dari **Mika → Command Prompt**:
-
-```text
-ipconfig /all
-ping 192.217.15.129
-ping 192.217.24.2
-```
-
-> “Karena Omnipresence dan Mika berbeda subnet, trafik dikirim melalui gateway masing-masing. Ping dari dua sisi digunakan untuk memeriksa komunikasi antarsubnet dan jalur kembalinya.”
-
-## 6. Demo jaringan luar
-
-Gunakan file `.pkt` versi yang sudah dilengkapi WAN/NAT. Jalur luarnya adalah **Cyberia → Cloud0 → Modem-ISP → ISP → Server-Luar**. Hanya Cyberia dari 13 router internal yang terhubung langsung ke Cloud; ISP dan Server-Luar merupakan perangkat tambahan di sisi luar.
-
-| Perangkat / interface | Alamat / prefix | Peran |
+| Buktikan | Jalankan | Hasil yang ditunjukkan |
 | --- | --- | --- |
-| Cyberia Fa0/0 | 203.0.113.2/30 | NAT outside. |
-| ISP Fa0/0 | 203.0.113.1/30 | Next hop WAN Cyberia. |
-| ISP Fa0/1 | 198.51.100.1/24 | Gateway jaringan Server-Luar. |
-| Server-Luar | 198.51.100.10/24 | Target ping; gateway 198.51.100.1. |
+| Filter hero | Request **09** | totalItems 11; skin Layla, termasuk `hero.name` |
+| Filter rarity | Request **10** | totalItems 98; semua GRAND |
+| Detail beserta hero | Request **11** | Silverbolt Raiko, hero Selena |
+| Pagination | Tambahan: `GET /api/skins?page=2&limit=5` | 5 skin; currentPage 2, limit 5, totalItems 892 |
+| Skin tidak ditemukan | Tambahan: `GET /api/skins/99999` | 404 |
 
-Pertama, dari **Cyberia → CLI**:
+**Tunjukkan kode:** `listSkins` dan `skinDetail` di controller yang sama; relasi hero diambil dengan `include`.
 
-```text
-enable
-show ip interface brief
-show ip route
-ping 203.0.113.1
-ping 198.51.100.10
-```
+## 4. Player
 
-Ping ke .113.1 memeriksa sambungan ke ISP; ping ke .100.10 memeriksa jalur sampai jaringan server. Periksa juga default route Cyberia ke `203.0.113.1`.
+**Jalankan request 12–13 sekarang. Detail/update/delete dibuktikan pada urutan collection 22–27.**
 
-Dari **Omnipresence → Command Prompt**:
-
-```text
-ping 198.51.100.10
-```
-
-Segera setelah itu, dari **Cyberia → CLI**:
-
-```text
-show ip nat translations
-show ip nat statistics
-```
-
-> “Trafik client internal diterjemahkan oleh Cyberia menjadi alamat WAN sebelum menuju server luar.”
-
-`show ip nat translations` digunakan untuk melihat translasi aktif. `show ip nat statistics` digunakan untuk memeriksa informasi NAT, termasuk interface inside/outside dan statistiknya.
-
-| Yang dijelaskan | Alamat pada rancangan |
-| --- | --- |
-| Inside local, alamat asli Omnipresence | 192.217.24.2. |
-| Inside global, alamat WAN untuk translasi | 203.0.113.2. |
-| Tujuan server luar | 198.51.100.10. |
-
-> “Alamat sumber Omnipresence 192.217.24.2 diterjemahkan menjadi 203.0.113.2. Saat balasan datang, Cyberia menerjemahkannya kembali dan meneruskannya melalui rute internal.”
-
-Entri ICMP dapat cepat kedaluwarsa. Jika tabel sudah kosong, ulangi ping dari client lalu segera periksa tabel NAT.
-
-Target 198.51.100.10 adalah server luar **simulasi di CPT**, bukan bukti akses Internet nyata. Ping dari Cyberia sendiri belum membuktikan NAT client; tampilkan tabel NAT setelah ping dari Omnipresence.
-
----
-
-<details>
-<summary><strong>Referensi konfigurasi WAN/NAT</strong> — untuk penjelasan atau membangun ulang sisi luar</summary>
-
-### Ruang lingkup tambahan WAN
-
-File `.pkt` yang sudah dilengkapi WAN/NAT memuat rancangan berikut. Bagian ini menjadi referensi konfigurasi ketika menjelaskan NAT atau menyiapkan kembali perangkat sisi luar. Dua puluh lima subnet internal A1–A25 mengikuti perhitungan semula.
-
-Jaringan luar pada contoh ini merupakan **simulasi di Packet Tracer**. Server-Luar beralamat 198.51.100.10 adalah perangkat yang dibuat di dalam simulasi; ping ke sana tidak membuktikan akses ke Internet nyata.
-
-### Perangkat dan sambungan tambahan
-
-Perangkat tambahan berupa Cable Modem-PT bernama **Modem-ISP**, router 2811 bernama **ISP**, serta Server-PT bernama **Server-Luar**. Sambungan pada file yang dilengkapi WAN adalah sebagai berikut.
-
-| Perangkat/port pertama | Perangkat/port kedua | Kabel |
+| Buktikan | Jalankan di Postman | Hasil yang ditunjukkan |
 | --- | --- | --- |
-| Cyberia FastEthernet0/0 | Cloud0 Ethernet6 | Copper straight-through. |
-| Cloud0 Coaxial7 | Modem-ISP Port 0 | Coaxial. |
-| Modem-ISP Port 1 | ISP FastEthernet0/0 | Copper straight-through. |
-| ISP FastEthernet0/1 | Server-Luar FastEthernet0 | Copper crossover. |
+| Buat player dan saldo default | Request **12** | 201; JunglerMalam id 4, BP 10000, Diamond 0 |
+| Nickname unik | Request **13** | 409; ArekITS sudah dipakai |
+| Nickname wajib diisi | Tambahan: `POST /api/players`, body `{"nickname":""}` | 400 |
+| Detail dan koleksi | Nanti request **22** | Player 3 beserta Freya, Layla, currency, dan pricePaid |
+| Update nickname | Nanti request **23–24** | MageITS berhasil 200; nickname ArekITS ditolak 409 |
+| Hapus player | Nanti request **26–27**, setelah statistik | DELETE 200; GET player yang dihapus 404 |
 
-Cloud dan modem meneruskan sambungan antara Ethernet dan coaxial. Proses NAT dilakukan oleh Cyberia, sedangkan router ISP meneruskan trafik menuju jaringan server luar.
+**Tunjukkan kode:** default BP/Diamond dan `onDelete: Cascade` pada schema; operasi player di `src/controllers/player.controller.ts`.
 
-### Konfigurasi sambungan Cloud
+## 5. Top Up dan Match
 
-1. Buka **Cloud → Config → Ethernet6**.
-2. Ubah **Provider Network** menjadi **Cable**.
-3. Buka **Connections → Cable**.
-4. Pasangkan **Coaxial7** dengan **Ethernet6**.
-5. Klik **Add**.
+**Jalankan di Postman.**
 
-Pemetaan port tersebut diperlukan agar trafik dapat diteruskan antara sisi modem dan sisi ISP.
+| Buktikan | Jalankan | Hasil yang ditunjukkan |
+| --- | --- | --- |
+| Top up positif | Request **14** | 200; Diamond player 3 menjadi 706 |
+| Amount tidak valid | Request **15**, lalu tambahan `POST /api/players/3/topup`, body `{"amount":1.5}` | Keduanya 400; saldo tidak bertambah |
+| Hadiah menang | Request **16** | 200; bpEarned 300, BP player 3 menjadi 10300 |
 
-### Alamat sisi luar
+**Tunjukkan kode:** `addBalance` di `src/services/player.service.ts` memakai `increment`; controller memilih WIN = 300 dan LOSE = 100. LOSE dijalankan setelah request 28 agar angka checkpoint tetap sesuai.
 
-| Perangkat/interface | IP | Subnet mask | Gateway |
-| --- | --- | --- | --- |
-| Cyberia Fa0/0 | 203.0.113.2 | 255.255.255.252 | Default route ke 203.0.113.1 |
-| ISP Fa0/0 | 203.0.113.1 | 255.255.255.252 | - |
-| ISP Fa0/1 | 198.51.100.1 | 255.255.255.0 | - |
-| Server-Luar | 198.51.100.10 | 255.255.255.0 | 198.51.100.1 |
+## 6. Beli Hero
 
-Alamat sisi luar ini dipakai untuk simulasi dan tidak termasuk ke dalam tabel 25 subnet internal 192.217.x.x.
+**Jalankan di Postman.**
 
-### Konfigurasi router ISP
+| Buktikan | Jalankan | Hasil yang ditunjukkan |
+| --- | --- | --- |
+| Harga null tidak bisa dipakai | Request **17** | Freya dengan BP ditolak 400 |
+| Pembelian Diamond | Request **18** | 201; harga 599, sisa Diamond 107 |
+| Pembelian BP | Request **19** | 201; harga 2000, sisa BP 8300 |
+| Tidak boleh membeli hero yang dimiliki | Request **20** | 409 |
+| Saldo kurang | Request **21** | 400 |
+| Pembelian tersimpan | Request **22** | Freya dan Layla muncul; BP 8300, Diamond 107; currency dan pricePaid benar |
+| Lanjut bukti update Player | Request **23–24** | Nickname menjadi MageITS; duplikat ditolak 409 |
 
-Jalankan pada **ISP → CLI**:
+**Tunjukkan kode:** `buyHero` di `src/services/player.service.ts`. Urutannya input → player → hero → harga → kepemilikan → saldo. `$transaction([ ... ])` berisi decrement saldo dan create PlayerHero, sehingga keduanya berhasil atau gagal bersama.
 
-```text
-enable
-configure terminal
-hostname ISP
+## 7. Statistik
 
-interface FastEthernet0/0
- ip address 203.0.113.1 255.255.255.252
- no shutdown
- exit
+**Jalankan di Postman: request 25 — `GET /api/statistics`.**
 
-interface FastEthernet0/1
- ip address 198.51.100.1 255.255.255.0
- no shutdown
- exit
-
-end
-copy running-config startup-config
-```
-
-Tekan Enter jika diminta nama file tujuan ketika menyimpan konfigurasi.
-
-### Konfigurasi Server-Luar
-
-Buka **Server-Luar → Desktop → IP Configuration → Static**, kemudian masukkan:
-
-```text
-IP address      : 198.51.100.10
-Subnet mask     : 255.255.255.0
-Default gateway : 198.51.100.1
-```
-
-DNS tidak diperlukan untuk command ping yang menggunakan alamat IP langsung.
-
-### Konfigurasi WAN dan NAT pada Cyberia
-
-Baris `no ip address` di Fa0/0 menghapus pengaturan alamat sebelumnya, kemudian alamat WAN ditetapkan secara statis. Interface internal dan rute internal yang sudah ada tetap digunakan.
-
-```text
-enable
-configure terminal
-
-interface FastEthernet0/0
- no ip address
- ip address 203.0.113.2 255.255.255.252
- ip nat outside
- no shutdown
- exit
-
-interface FastEthernet0/1
- ip nat inside
- exit
-
-interface FastEthernet1/0
- ip nat inside
- exit
-
-access-list 1 permit 192.217.0.0 0.0.63.255
-ip nat inside source list 1 interface FastEthernet0/0 overload
-ip route 0.0.0.0 0.0.0.0 203.0.113.1
-
-end
-copy running-config startup-config
-```
-
-| Bagian konfigurasi | Penjelasan |
+| Field sesuai modul | Hasil yang ditunjukkan |
 | --- | --- |
-| Fa0/0: `ip nat outside` | Interface menuju sambungan luar. |
-| Fa0/1: `ip nat inside` | Interface internal yang menuju Wired. |
-| Fa1/0: `ip nat inside` | Interface internal yang menuju LAN Cyberia. |
-| `access-list 1 permit 192.217.0.0 0.0.63.255` | Memilih alamat sumber pada blok internal /18 untuk diterjemahkan. |
-| `interface FastEthernet0/0 overload` | Menggunakan alamat WAN Fa0/0 untuk translasi beberapa perangkat internal. |
-| Default route ke 203.0.113.1 | Mengirim tujuan di luar rute internal menuju router ISP. |
+| `totalPlayers` | 4 |
+| `totalHeroesOwned` | 6 |
+| `totalDiamond` | 3074 |
+| `mostOwnedHero` | Layla, heroId 18, owners 2 |
+| `heroesPerRole` | FIGHTER 37, MAGE 26, ASSASSIN 20, MARKSMAN 20, TANK 18, SUPPORT 13 |
 
-Wildcard /18 diperoleh dari `255.255.255.255 - 255.255.192.0 = 0.0.63.255`. Di dalam contoh ini, alamat sumber client diterjemahkan menjadi alamat WAN Cyberia **203.0.113.2**. Overload/PAT membedakan aliran menggunakan informasi protokol; untuk trafik ICMP, identifier ICMP ikut digunakan.
+**Tunjukkan kode:** `src/controllers/statistics.controller.ts`: `count`, `aggregate` dengan `_sum`, serta `groupBy`. Total hero 134 karena Collie sudah dibuat.
 
-> “Cyberia menjadi batas jaringan internal dan eksternal. Dua interface internal ditandai NAT inside dan interface WAN ditandai NAT outside. NAT overload menerjemahkan sumber internal menggunakan alamat WAN Cyberia.”
+**Selesaikan collection:** request **26** → 200, **27** → 404, **28** → 404.
 
-Router ISP tidak memerlukan rute ke seluruh subnet internal untuk balasan trafik PAT ini, karena balasan diarahkan ke alamat WAN Cyberia. Cyberia menerjemahkan balasan dan meneruskannya ke jaringan internal menggunakan routing yang sudah tersedia.
+**Setelah request 28, buktikan dua ketentuan berikut di Postman:**
 
-### Urutan command demo jaringan luar
+| Ketentuan | Jalankan | Hasil |
+| --- | --- | --- |
+| Hadiah kalah | `POST /api/players/3/matches`, body `{"result":"LOSE"}` | bpEarned 100; BP menjadi 8400 |
+| Cascade kepemilikan | `DELETE /api/players/1`, lalu di Prisma Studio cek PlayerHero dengan playerId 1 | Player terhapus; dua kepemilikannya ikut hilang |
 
-Pertama, dari **Cyberia → CLI**:
+## Terakhir: Live Coding Test Case 2 — Filter Lane
 
-```text
-enable
-show ip interface brief
-show ip route
-ping 203.0.113.1
-ping 198.51.100.10
+**Catatan monitor 1 — bagian privat kelompok.** Kerjakan setelah request 28. Gunakan kode awal tanpa filter lane saat memulai rekaman.
+
+### 1. Tunjukkan kondisi awal — Postman
+
+Kirim `GET http://localhost:3000/api/heroes?lane=GOLD&limit=5`.
+
+**Sebelum perubahan:** lane masih diabaikan, data bercampur lane dan totalItems 134 setelah Collie dibuat.
+
+### 2. Tempel kode — VS Code
+
+**File:** `src/controllers/catalog.controller.ts`.
+
+**Ucapkan:** “Saya menambahkan query lane sesuai enum. Filter lane digabung dengan search dan role. Query daftar dan count memakai where yang sama, sehingga metadata menghitung hasil filter sebelum pagination.”
+
+**Klik isi file → Ctrl+A → tempel seluruh blok berikut → Ctrl+S.** Ini isi lengkap file, termasuk semua method Hero dan Skin.
+
+```typescript
+import type { Request, Response } from "express";
+import type { Database } from "../lib/database.js";
+import {
+  heroSchema,
+  roleSchema,
+  laneSchema,
+  raritySchema,
+  pagination,
+  queryText,
+  queryInteger,
+  pathId,
+  metadata,
+} from "../lib/validation.js";
+import { HttpError } from "../middleware/errors.js";
+import type { Prisma } from "../generated/prisma/client.js";
+
+export function catalogController(db: Database) {
+  return {
+    async listHeroes(req: Request, res: Response) {
+      const { page, limit, skip } = pagination(req);
+      const search = queryText(req, "search")?.trim();
+      const role = queryText(req, "role");
+      const lane = queryText(req, "lane");
+      const where: Prisma.HeroWhereInput = {
+        ...(search ? { name: { contains: search, mode: "insensitive" } } : {}),
+        ...(role !== undefined ? { role: roleSchema.parse(role) } : {}),
+        ...(lane !== undefined ? { lane: laneSchema.parse(lane) } : {}),
+      };
+      const [data, total] = await Promise.all([
+        db.hero.findMany({ where, skip, take: limit, orderBy: { id: "asc" } }),
+        db.hero.count({ where }),
+      ]);
+      res.json({
+        status: true,
+        message: "Berhasil mengambil data hero",
+        data,
+        metadata: metadata(page, limit, total),
+      });
+    },
+    async heroDetail(req: Request, res: Response) {
+      const data = await db.hero.findUnique({
+        where: { id: pathId(req, "hero_id") },
+        include: { skins: { orderBy: { id: "asc" } } },
+      });
+      if (!data) throw new HttpError(404, "Hero tidak ditemukan");
+      res.json({
+        status: true,
+        message: "Berhasil mengambil detail hero",
+        data,
+      });
+    },
+    async createHero(req: Request, res: Response) {
+      const input = heroSchema.parse(req.body);
+      if (await db.hero.findUnique({ where: { name: input.name } }))
+        throw new HttpError(409, "Nama hero sudah digunakan");
+      const data = await db.hero.create({ data: input });
+      res
+        .status(201)
+        .json({ status: true, message: "Hero berhasil ditambahkan", data });
+    },
+    async listSkins(req: Request, res: Response) {
+      const { page, limit, skip } = pagination(req);
+      const rarity = queryText(req, "rarity");
+      const heroId = queryText(req, "heroId");
+      const where: Prisma.SkinWhereInput = {
+        ...(rarity !== undefined ? { rarity: raritySchema.parse(rarity) } : {}),
+        ...(heroId !== undefined
+          ? { heroId: queryInteger(req, "heroId") }
+          : {}),
+      };
+      const [data, total] = await Promise.all([
+        db.skin.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { id: "asc" },
+          include: { hero: { select: { name: true } } },
+        }),
+        db.skin.count({ where }),
+      ]);
+      res.json({
+        status: true,
+        message: "Berhasil mengambil data skin",
+        data,
+        metadata: metadata(page, limit, total),
+      });
+    },
+    async skinDetail(req: Request, res: Response) {
+      const data = await db.skin.findUnique({
+        where: { id: pathId(req, "skin_id") },
+        include: { hero: true },
+      });
+      if (!data) throw new HttpError(404, "Skin tidak ditemukan");
+      res.json({
+        status: true,
+        message: "Berhasil mengambil detail skin",
+        data,
+      });
+    },
+  };
+}
 ```
 
-Lalu dari **Omnipresence → Desktop → Command Prompt**:
+### 3. Pastikan server siap
 
-```text
-ping 203.0.113.1
-ping 198.51.100.10
-tracert 198.51.100.10
-```
+Tunggu server `npm.cmd run dev:neon` selesai memuat ulang. Di terminal baru pada folder proyek, jalankan `npm.cmd run typecheck`.
 
-Segera setelah ping dari client, tampilkan pada **Cyberia → CLI**:
+**Hasil:** tidak ada error TypeScript. Field lane dan validasinya sudah tersedia di proyek; tidak perlu migrasi.
 
-```text
-show ip nat translations
-show ip nat statistics
-```
+### 4. Buktikan hasil — Postman
 
-> “Ping dari Cyberia memeriksa koneksi sisi WAN. Ping dari Omnipresence memeriksa perjalanan trafik internal ke jaringan luar melalui NAT. Tabel translasi digunakan untuk menunjukkan perubahan alamat sumber client menjadi alamat WAN Cyberia.”
+Gunakan port server aktif jika bukan 3000. Semua request berikut memakai method **GET**.
 
-Ping dari Cyberia sendiri belum membuktikan translasi trafik client. Untuk menunjukkan PAT, kirim ping dari client internal lalu segera periksa tabel NAT karena entri ICMP dapat kedaluwarsa.
-
-</details>
-
-
-<details>
-<summary><strong>Jika perlu mengecek atau menjawab pertanyaan saat demo</strong></summary>
-
-| Pemeriksaan | Command / tindakan |
+| URL | Hasil yang ditunjukkan |
 | --- | --- |
-| IP dan gateway client | `ipconfig /all`, kemudian ping gateway client. |
-| Interface router | `show ip interface brief`; periksa port yang digunakan. |
-| Rute menuju Mika | `show ip route 192.217.15.131` pada Wired. |
-| Konfigurasi aktif | `show running-config`. |
-| Konfigurasi tersimpan | `show startup-config`. |
-| Jalur client ke client | `tracert 192.217.15.131` dari Omnipresence. |
-| Trafik keluar | Ping ISP dan Server-Luar dari Cyberia, kemudian dari client. |
-| NAT | `show ip nat translations` dan `show ip nat statistics` pada Cyberia setelah ping client. |
+| `http://localhost:3000/api/heroes?lane=GOLD&page=1&limit=5` | 5 data, semuanya GOLD; totalItems 19, totalPages 4 |
+| `http://localhost:3000/api/heroes?lane=GOLD&role=MARKSMAN&search=la&page=1&limit=1` | Layla; currentPage 1, totalItems 2, totalPages 2 |
+| `http://localhost:3000/api/heroes?lane=GOLD&role=MARKSMAN&search=la&page=2&limit=1` | Claude; currentPage 2, totalItems tetap 2, totalPages 2 |
+| `http://localhost:3000/api/heroes?lane=INVALID` | 400; status false dan message validasi |
 
-Paket awal dapat digunakan untuk proses ARP. Tunggu link aktif lalu ulangi ping sebelum menyimpulkan adanya masalah routing. Jika ping gateway belum membalas, periksa LAN dan IP client terlebih dahulu.
+**Ucapkan:** “Hasilnya sudah sesuai lane. Saat digabung dengan role, search, dan pagination, halaman pertama menampilkan Layla dan halaman kedua Claude. TotalItems tetap 2 meskipun tiap halaman hanya berisi 1 hero.”
 
-| Pertanyaan | Jawaban singkat |
-| --- | --- |
-| Mengapa bukan /26 untuk semua subnet? | Kebutuhan setiap segmen berbeda; prefix dipilih agar kapasitasnya mencukupi. |
-| Mengapa root /18 tetapi Mika /26? | /18 adalah agregat jaringan, sedangkan /26 merupakan subnet LAN Mika. |
-| Mengapa membutuhkan rute balik? | Balasan ping harus dapat mencapai alamat sumber. |
-| Mengapa NAT diperiksa setelah ping client? | Trafik client internal digunakan untuk memperlihatkan translasi sumber oleh Cyberia. |
-| Apakah Cloud yang melakukan NAT? | Pada rancangan ini Cloud menjadi media penghubung; NAT dipasang pada Cyberia. |
+**Jika perlu menjelaskan perubahan:** ada tiga tambahan, yaitu import `laneSchema`, membaca query `lane`, dan memasukkan lane ke objek `where`. Nilai valid: EXP, GOLD, MID, JUNGLE, ROAM.
 
-Jika mengubah konfigurasi router secara manual, simpan menggunakan `copy running-config startup-config`, tekan Enter untuk nama tujuan, kemudian simpan proyek `.pkt` melalui **Save** di CPT.
-
-</details>
-
-Referensi teknis: [CIDR](https://www.rfc-editor.org/rfc/rfc4632.html), [Cloud Packet Tracer](https://tutorials.ptnetacad.net/help/default/config_clouds.htm), dan [NAT Cisco](https://www.cisco.com/c/en/us/support/docs/ip/network-address-translation-nat/13778-9.html).
+**Penutup:** tunjukkan hasil pengujian dan pembagian tugas anggota.
