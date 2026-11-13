@@ -4,16 +4,17 @@ Ikuti nomor **Spesifikasi Fitur 1–7** pada modul. Request bernomor merujuk col
 
 ## Persiapan
 
+**Alamat demo:** `http://localhost:3001`.
+
 **Terminal VS Code, folder `mlbb-shop` yang berisi `package.json`:**
 
-Jika koneksi Neon belum disiapkan, jalankan `npm.cmd run start:neon`, isi koneksi, lalu Ctrl+C setelah siap. Sebelum demo:
+1. Jika `JALANKAN-NEON.cmd` masih menjalankan server, hentikan dengan **Ctrl+C**.
+2. Jalankan `npm.cmd run demo:reset:neon` untuk mengembalikan data awal.
+3. Jalankan lagi **JALANKAN-NEON.cmd**. Tunggu server Neon siap dan periksa alamatnya `http://localhost:3001`.
 
-```powershell
-npm.cmd run demo:reset:neon
-npm.cmd run dev:neon
-```
+**Postman:** import `postman/MLBB-Shop-28-Testcase.postman_collection.json`. Pastikan semua request collection menuju `http://localhost:3001`. Jika URL masih memakai port lain, unduh collection dari `http://localhost:3001/postman/collection.json`, lalu impor ulang.
 
-**Postman:** import `postman/MLBB-Shop-28-Testcase.postman_collection.json`. Gunakan alamat server yang muncul di terminal, biasanya `http://localhost:3000`.
+Saat memasuki live coding di bagian akhir, ikuti langkah perpindahan server ke `dev:neon` yang tersedia di bawah.
 
 **Bukti awal — tunjukkan sebelum mengirim request:**
 
@@ -138,13 +139,22 @@ npm.cmd run dev:neon
 
 **Catatan monitor 1 — bagian privat kelompok.** Kerjakan setelah request 28. Gunakan kode awal tanpa filter lane saat memulai rekaman.
 
-### 1. Tunjukkan kondisi awal — Postman
+### 1. Pindahkan server ke mode live coding
 
-Kirim `GET http://localhost:3000/api/heroes?lane=GOLD&limit=5`.
+1. Pada jendela **JALANKAN-NEON.cmd**, tekan **Ctrl+C** sampai server berhenti. Jika muncul pertanyaan menghentikan batch, jawab **Y**.
+2. Buka terminal VS Code di folder `mlbb-shop` yang berisi `package.json`.
+3. Jalankan `$env:PORT = "3001"`, lalu jalankan `npm.cmd run dev:neon` pada terminal yang sama.
+4. Tunggu server siap di `http://localhost:3001`. Biarkan terminal ini terbuka sampai demo selesai.
+
+**Hasil:** koneksi Neon dan data tetap sama; server sekarang otomatis memuat perubahan setelah kode disimpan. Lanjutkan dari data demo yang sudah ada.
+
+### 2. Tunjukkan kondisi awal — Postman
+
+Kirim `GET http://localhost:3001/api/heroes?lane=GOLD&limit=5`.
 
 **Sebelum perubahan:** lane masih diabaikan, data bercampur lane dan totalItems 134 setelah Collie dibuat.
 
-### 2. Tempel kode — VS Code
+### 3. Tempel kode — VS Code
 
 **File:** `src/controllers/catalog.controller.ts`.
 
@@ -256,22 +266,22 @@ export function catalogController(db: Database) {
 }
 ```
 
-### 3. Pastikan server siap
+### 4. Simpan, tunggu server, lalu typecheck
 
-Tunggu server `npm.cmd run dev:neon` selesai memuat ulang. Di terminal baru pada folder proyek, jalankan `npm.cmd run typecheck`.
+Setelah **Ctrl+S**, tunggu server di terminal `dev:neon` selesai memuat ulang dan siap kembali. Buka **terminal kedua** di folder proyek, lalu jalankan `npm.cmd run typecheck`. Server pada terminal pertama tetap berjalan.
 
 **Hasil:** tidak ada error TypeScript. Field lane dan validasinya sudah tersedia di proyek; tidak perlu migrasi.
 
-### 4. Buktikan hasil — Postman
+### 5. Buktikan hasil — Postman
 
-Gunakan port server aktif jika bukan 3000. Semua request berikut memakai method **GET**.
+Semua request berikut memakai method **GET** pada port **3001**.
 
 | URL | Hasil yang ditunjukkan |
 | --- | --- |
-| `http://localhost:3000/api/heroes?lane=GOLD&page=1&limit=5` | 5 data, semuanya GOLD; totalItems 19, totalPages 4 |
-| `http://localhost:3000/api/heroes?lane=GOLD&role=MARKSMAN&search=la&page=1&limit=1` | Layla; currentPage 1, totalItems 2, totalPages 2 |
-| `http://localhost:3000/api/heroes?lane=GOLD&role=MARKSMAN&search=la&page=2&limit=1` | Claude; currentPage 2, totalItems tetap 2, totalPages 2 |
-| `http://localhost:3000/api/heroes?lane=INVALID` | 400; status false dan message validasi |
+| `http://localhost:3001/api/heroes?lane=GOLD&page=1&limit=5` | 5 data, semuanya GOLD; totalItems 19, totalPages 4 |
+| `http://localhost:3001/api/heroes?lane=GOLD&role=MARKSMAN&search=la&page=1&limit=1` | Layla; currentPage 1, totalItems 2, totalPages 2 |
+| `http://localhost:3001/api/heroes?lane=GOLD&role=MARKSMAN&search=la&page=2&limit=1` | Claude; currentPage 2, totalItems tetap 2, totalPages 2 |
+| `http://localhost:3001/api/heroes?lane=INVALID` | 400; status false dan message validasi |
 
 **Ucapkan:** “Hasilnya sudah sesuai lane. Saat digabung dengan role, search, dan pagination, halaman pertama menampilkan Layla dan halaman kedua Claude. TotalItems tetap 2 meskipun tiap halaman hanya berisi 1 hero.”
 
