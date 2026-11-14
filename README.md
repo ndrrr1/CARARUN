@@ -1,290 +1,118 @@
-# Demo Pembuktian Modul 4 — MLBB Shop
 
-Ikuti nomor **Spesifikasi Fitur 1–7** pada modul. Request bernomor merujuk collection Postman; body-nya sudah terisi. Request tambahan dibuat di tab baru.
 
-## Persiapan
+## 1. Topologi dan VLSM · 00:00–01:40
 
-**Alamat demo:** `http://localhost:3001`.
+**Di layar**, tunjuk PC-Balai dan R-PUSAT, lalu ikuti link menuju R-UTARA dan R-PELABUHAN sampai **PC Sensor Pel**.
 
-**Terminal VS Code, folder `mlbb-shop` yang berisi `package.json`:**
+> Kami dari Kelompok 14. Oktet kedua mengikuti aturan 8 kali 14, yaitu 112. Jadi kami memakai blok induk privat `10.112.0.0/16`. R-PUSAT menghubungkan jaringan Balai Kota dengan wilayah lain. Jalur fisik menuju Pelabuhan melewati R-UTARA.
 
-1. Jika `JALANKAN-NEON.cmd` masih menjalankan server, hentikan dengan **Ctrl+C**.
-2. Jalankan `npm.cmd run demo:reset:neon` untuk mengembalikan data awal.
-3. Jalankan lagi **JALANKAN-NEON.cmd**. Tunggu server Neon siap dan periksa alamatnya `http://localhost:3001`.
+| Contoh | Kebutuhan | Network / prefix | Mask | Gateway atau IP ujung link |
+| --- | --- | --- | --- | --- |
+| WiFi Publik Utara | 11.000 host + gateway | `10.112.0.0/18` | `255.255.192.0` | `10.112.0.1` |
+| Pegawai Balai Kota | 1.800 host + gateway | `10.112.224.0/21` | `255.255.248.0` | `10.112.224.1` |
+| Sensor dan SCADA Pelabuhan | 5.000 host + gateway | `10.112.160.0/19` | `255.255.224.0` | `10.112.160.1` |
+| Link Pusat–Utara | 2 interface | `10.112.241.32/30` | `255.255.255.252` | Pusat `10.112.241.33`, Utara `10.112.241.34` |
 
-**Postman:** import `postman/MLBB-Shop-28-Testcase.postman_collection.json`. Pastikan semua request collection menuju `http://localhost:3001`. Jika URL masih memakai port lain, unduh collection dari `http://localhost:3001/postman/collection.json`, lalu impor ulang.
+> Kami mulai dari blok terbesar. WiFi Utara membutuhkan 11.001 alamat host termasuk gateway. Kapasitas `/19` hanya 8.190 host valid, sehingga kami pilih `/18` dengan 16.382 host valid. Link Pusat–Utara memakai `/30` karena hanya memerlukan dua alamat interface.
 
-Saat memasuki live coding di bagian akhir, ikuti langkah perpindahan server ke `dev:neon` yang tersedia di bawah.
+## 2. Interface dan OSPF · 01:40–03:00
 
-**Bukti awal — tunjukkan sebelum mengirim request:**
+**R-PUSAT → CLI** pada prompt `#`. Jalankan **satu baris setiap kali**.
 
-| Ketentuan modul | Tunjukkan di mana | Bukti yang terlihat |
-| --- | --- | --- |
-| Stack wajib | VS Code: `package.json`, `src/lib/database.ts` | Express 5, TypeScript, Prisma 7, adapter Neon |
-| Schema | VS Code: `prisma/schema.prisma` | Hero, Skin, Player, PlayerHero; empat enum; unique, default saldo, dan cascade |
-| Dataset dan seed | VS Code: `src/lib/seed-data.ts`; terminal baru: `npm.cmd run db:studio` | TRUNCATE + createMany; di Studio ada 133 Hero, 892 Skin, 3 Player, 4 PlayerHero |
-
-## 1. Middleware
-
-**Jalankan di Postman; lihat juga terminal server.**
-
-| Buktikan | Jalankan | Hasil yang ditunjukkan |
-| --- | --- | --- |
-| Server dan koneksi Neon | Request **01**: `GET /health` | 200; `status: true`, database `connected`, mode `neon` |
-| Logger | Lihat terminal setelah request 01 | Ada method, URL, dan status: `GET /health 200` |
-| Error handler | Request tambahan: `GET /api/heroes/999` | 404; JSON berisi `status: false` dan `message` |
-| notFound | Request tambahan: `GET /api/ngawur` | 404; format response gagal yang sama |
-
-**Penjelasan singkat:** setiap request dicatat dan setiap error memakai format yang ditentukan modul. Tunjukkan `HttpError`, `notFound`, dan `errorHandler` di `src/middleware/errors.ts`.
-
-## 2. Hero
-
-**Jalankan di Postman, urut seperti tabel.**
-
-| Buktikan | Jalankan | Hasil yang ditunjukkan |
-| --- | --- | --- |
-| Pagination default | Tambahan: `GET /api/heroes` | 10 data; metadata currentPage 1, limit 10, totalItems 133, totalPages 14 |
-| Pagination halaman 2 | Tambahan: `GET /api/heroes?page=2&limit=5` | 5 data, id 6–10; currentPage 2, totalItems 133, totalPages 27 |
-| Filter role | Request **02** | Semua MARKSMAN; tampil 5 data, totalItems 20 |
-| Search | Request **03**, lalu tambahan `GET /api/heroes?search=LA` | Keduanya totalItems 10; membuktikan search tidak peka kapital |
-| Detail beserta skin | Request **04** | Layla, 11 skin pada `data.skins` |
-| Hero tidak ditemukan | Request **05** | 404 |
-| Tambah hero | Request **06** | 201; Collie id 134 |
-| Nama duplikat | Request **07** | 409 |
-| Field wajib kurang | Request **08** | 400 |
-
-**Tunjukkan kode:** `listHeroes`, `heroDetail`, dan `createHero` di `src/controllers/catalog.controller.ts`: filter, skip/take, `include`, serta validasi sebelum create.
-
-## 3. Skin
-
-**Jalankan di Postman.**
-
-| Buktikan | Jalankan | Hasil yang ditunjukkan |
-| --- | --- | --- |
-| Filter hero | Request **09** | totalItems 11; skin Layla, termasuk `hero.name` |
-| Filter rarity | Request **10** | totalItems 98; semua GRAND |
-| Detail beserta hero | Request **11** | Silverbolt Raiko, hero Selena |
-| Pagination | Tambahan: `GET /api/skins?page=2&limit=5` | 5 skin; currentPage 2, limit 5, totalItems 892 |
-| Skin tidak ditemukan | Tambahan: `GET /api/skins/99999` | 404 |
-
-**Tunjukkan kode:** `listSkins` dan `skinDetail` di controller yang sama; relasi hero diambil dengan `include`.
-
-## 4. Player
-
-**Jalankan request 12–13 sekarang. Detail/update/delete dibuktikan pada urutan collection 22–27.**
-
-| Buktikan | Jalankan di Postman | Hasil yang ditunjukkan |
-| --- | --- | --- |
-| Buat player dan saldo default | Request **12** | 201; JunglerMalam id 4, BP 10000, Diamond 0 |
-| Nickname unik | Request **13** | 409; ArekITS sudah dipakai |
-| Nickname wajib diisi | Tambahan: `POST /api/players`, body `{"nickname":""}` | 400 |
-| Detail dan koleksi | Nanti request **22** | Player 3 beserta Freya, Layla, currency, dan pricePaid |
-| Update nickname | Nanti request **23–24** | MageITS berhasil 200; nickname ArekITS ditolak 409 |
-| Hapus player | Nanti request **26–27**, setelah statistik | DELETE 200; GET player yang dihapus 404 |
-
-**Tunjukkan kode:** default BP/Diamond dan `onDelete: Cascade` pada schema; operasi player di `src/controllers/player.controller.ts`.
-
-## 5. Top Up dan Match
-
-**Jalankan di Postman.**
-
-| Buktikan | Jalankan | Hasil yang ditunjukkan |
-| --- | --- | --- |
-| Top up positif | Request **14** | 200; Diamond player 3 menjadi 706 |
-| Amount tidak valid | Request **15**, lalu tambahan `POST /api/players/3/topup`, body `{"amount":1.5}` | Keduanya 400; saldo tidak bertambah |
-| Hadiah menang | Request **16** | 200; bpEarned 300, BP player 3 menjadi 10300 |
-
-**Tunjukkan kode:** `addBalance` di `src/services/player.service.ts` memakai `increment`; controller memilih WIN = 300 dan LOSE = 100. LOSE dijalankan setelah request 28 agar angka checkpoint tetap sesuai.
-
-## 6. Beli Hero
-
-**Jalankan di Postman.**
-
-| Buktikan | Jalankan | Hasil yang ditunjukkan |
-| --- | --- | --- |
-| Harga null tidak bisa dipakai | Request **17** | Freya dengan BP ditolak 400 |
-| Pembelian Diamond | Request **18** | 201; harga 599, sisa Diamond 107 |
-| Pembelian BP | Request **19** | 201; harga 2000, sisa BP 8300 |
-| Tidak boleh membeli hero yang dimiliki | Request **20** | 409 |
-| Saldo kurang | Request **21** | 400 |
-| Pembelian tersimpan | Request **22** | Freya dan Layla muncul; BP 8300, Diamond 107; currency dan pricePaid benar |
-| Lanjut bukti update Player | Request **23–24** | Nickname menjadi MageITS; duplikat ditolak 409 |
-
-**Tunjukkan kode:** `buyHero` di `src/services/player.service.ts`. Urutannya input → player → hero → harga → kepemilikan → saldo. `$transaction([ ... ])` berisi decrement saldo dan create PlayerHero, sehingga keduanya berhasil atau gagal bersama.
-
-## 7. Statistik
-
-**Jalankan di Postman: request 25 — `GET /api/statistics`.**
-
-| Field sesuai modul | Hasil yang ditunjukkan |
-| --- | --- |
-| `totalPlayers` | 4 |
-| `totalHeroesOwned` | 6 |
-| `totalDiamond` | 3074 |
-| `mostOwnedHero` | Layla, heroId 18, owners 2 |
-| `heroesPerRole` | FIGHTER 37, MAGE 26, ASSASSIN 20, MARKSMAN 20, TANK 18, SUPPORT 13 |
-
-**Tunjukkan kode:** `src/controllers/statistics.controller.ts`: `count`, `aggregate` dengan `_sum`, serta `groupBy`. Total hero 134 karena Collie sudah dibuat.
-
-**Selesaikan collection:** request **26** → 200, **27** → 404, **28** → 404.
-
-**Setelah request 28, buktikan dua ketentuan berikut di Postman:**
-
-| Ketentuan | Jalankan | Hasil |
-| --- | --- | --- |
-| Hadiah kalah | `POST /api/players/3/matches`, body `{"result":"LOSE"}` | bpEarned 100; BP menjadi 8400 |
-| Cascade kepemilikan | `DELETE /api/players/1`, lalu di Prisma Studio cek PlayerHero dengan playerId 1 | Player terhapus; dua kepemilikannya ikut hilang |
-
-## Terakhir: Live Coding Test Case 2 — Filter Lane
-
-**Catatan monitor 1 — bagian privat kelompok.** Kerjakan setelah request 28. Gunakan kode awal tanpa filter lane saat memulai rekaman.
-
-### 1. Pindahkan server ke mode live coding
-
-1. Pada jendela **JALANKAN-NEON.cmd**, tekan **Ctrl+C** sampai server berhenti. Jika muncul pertanyaan menghentikan batch, jawab **Y**.
-2. Buka terminal VS Code di folder `mlbb-shop` yang berisi `package.json`.
-3. Jalankan `$env:PORT = "3001"`, lalu jalankan `npm.cmd run dev:neon` pada terminal yang sama.
-4. Tunggu server siap di `http://localhost:3001`. Biarkan terminal ini terbuka sampai demo selesai.
-
-**Hasil:** koneksi Neon dan data tetap sama; server sekarang otomatis memuat perubahan setelah kode disimpan. Lanjutkan dari data demo yang sudah ada.
-
-### 2. Tunjukkan kondisi awal — Postman
-
-Kirim `GET http://localhost:3001/api/heroes?lane=GOLD&limit=5`.
-
-**Sebelum perubahan:** lane masih diabaikan, data bercampur lane dan totalItems 134 setelah Collie dibuat.
-
-### 3. Tempel kode — VS Code
-
-**File:** `src/controllers/catalog.controller.ts`.
-
-**Ucapkan:** “Saya menambahkan query lane sesuai enum. Filter lane digabung dengan search dan role. Query daftar dan count memakai where yang sama, sehingga metadata menghitung hasil filter sebelum pagination.”
-
-**Klik isi file → Ctrl+A → tempel seluruh blok berikut → Ctrl+S.** Ini isi lengkap file, termasuk semua method Hero dan Skin.
-
-```typescript
-import type { Request, Response } from "express";
-import type { Database } from "../lib/database.js";
-import {
-  heroSchema,
-  roleSchema,
-  laneSchema,
-  raritySchema,
-  pagination,
-  queryText,
-  queryInteger,
-  pathId,
-  metadata,
-} from "../lib/validation.js";
-import { HttpError } from "../middleware/errors.js";
-import type { Prisma } from "../generated/prisma/client.js";
-
-export function catalogController(db: Database) {
-  return {
-    async listHeroes(req: Request, res: Response) {
-      const { page, limit, skip } = pagination(req);
-      const search = queryText(req, "search")?.trim();
-      const role = queryText(req, "role");
-      const lane = queryText(req, "lane");
-      const where: Prisma.HeroWhereInput = {
-        ...(search ? { name: { contains: search, mode: "insensitive" } } : {}),
-        ...(role !== undefined ? { role: roleSchema.parse(role) } : {}),
-        ...(lane !== undefined ? { lane: laneSchema.parse(lane) } : {}),
-      };
-      const [data, total] = await Promise.all([
-        db.hero.findMany({ where, skip, take: limit, orderBy: { id: "asc" } }),
-        db.hero.count({ where }),
-      ]);
-      res.json({
-        status: true,
-        message: "Berhasil mengambil data hero",
-        data,
-        metadata: metadata(page, limit, total),
-      });
-    },
-    async heroDetail(req: Request, res: Response) {
-      const data = await db.hero.findUnique({
-        where: { id: pathId(req, "hero_id") },
-        include: { skins: { orderBy: { id: "asc" } } },
-      });
-      if (!data) throw new HttpError(404, "Hero tidak ditemukan");
-      res.json({
-        status: true,
-        message: "Berhasil mengambil detail hero",
-        data,
-      });
-    },
-    async createHero(req: Request, res: Response) {
-      const input = heroSchema.parse(req.body);
-      if (await db.hero.findUnique({ where: { name: input.name } }))
-        throw new HttpError(409, "Nama hero sudah digunakan");
-      const data = await db.hero.create({ data: input });
-      res
-        .status(201)
-        .json({ status: true, message: "Hero berhasil ditambahkan", data });
-    },
-    async listSkins(req: Request, res: Response) {
-      const { page, limit, skip } = pagination(req);
-      const rarity = queryText(req, "rarity");
-      const heroId = queryText(req, "heroId");
-      const where: Prisma.SkinWhereInput = {
-        ...(rarity !== undefined ? { rarity: raritySchema.parse(rarity) } : {}),
-        ...(heroId !== undefined
-          ? { heroId: queryInteger(req, "heroId") }
-          : {}),
-      };
-      const [data, total] = await Promise.all([
-        db.skin.findMany({
-          where,
-          skip,
-          take: limit,
-          orderBy: { id: "asc" },
-          include: { hero: { select: { name: true } } },
-        }),
-        db.skin.count({ where }),
-      ]);
-      res.json({
-        status: true,
-        message: "Berhasil mengambil data skin",
-        data,
-        metadata: metadata(page, limit, total),
-      });
-    },
-    async skinDetail(req: Request, res: Response) {
-      const data = await db.skin.findUnique({
-        where: { id: pathId(req, "skin_id") },
-        include: { hero: true },
-      });
-      if (!data) throw new HttpError(404, "Skin tidak ditemukan");
-      res.json({
-        status: true,
-        message: "Berhasil mengambil detail skin",
-        data,
-      });
-    },
-  };
-}
+```text
+show ip interface brief
+show ip ospf neighbor
+show ip route
 ```
 
-### 4. Simpan, tunggu server, lalu typecheck
-
-Setelah **Ctrl+S**, tunggu server di terminal `dev:neon` selesai memuat ulang dan siap kembali. Buka **terminal kedua** di folder proyek, lalu jalankan `npm.cmd run typecheck`. Server pada terminal pertama tetap berjalan.
-
-**Hasil:** tidak ada error TypeScript. Field lane dan validasinya sudah tersedia di proyek; tidak perlu migrasi.
-
-### 5. Buktikan hasil — Postman
-
-Semua request berikut memakai method **GET** pada port **3001**.
-
-| URL | Hasil yang ditunjukkan |
+| Setelah command | Tunjuk bagian output ini |
 | --- | --- |
-| `http://localhost:3001/api/heroes?lane=GOLD&page=1&limit=5` | 5 data, semuanya GOLD; totalItems 19, totalPages 4 |
-| `http://localhost:3001/api/heroes?lane=GOLD&role=MARKSMAN&search=la&page=1&limit=1` | Layla; currentPage 1, totalItems 2, totalPages 2 |
-| `http://localhost:3001/api/heroes?lane=GOLD&role=MARKSMAN&search=la&page=2&limit=1` | Claude; currentPage 2, totalItems tetap 2, totalPages 2 |
-| `http://localhost:3001/api/heroes?lane=INVALID` | 400; status false dan message validasi |
+| `show ip interface brief` | `FastEthernet1/0` dengan `10.112.224.1` dan `FastEthernet0/1` dengan `10.112.241.33`. Port yang dipakai diharapkan `up/up`. |
+| `show ip ospf neighbor` | R-UTARA memiliki Neighbor ID `14.0.0.4`, Address `10.112.241.34`, dan status `FULL`. R-PUSAT diharapkan memiliki lima tetangga fisik. |
+| `show ip route` | `O 10.112.160.0/19` via `10.112.241.34`. LAN lokal `10.112.224.0/21` berstatus `C`. |
 
-**Ucapkan:** “Hasilnya sudah sesuai lane. Saat digabung dengan role, search, dan pagination, halaman pertama menampilkan Layla dan halaman kedua Claude. TotalItems tetap 2 meskipun tiap halaman hanya berisi 1 hero.”
+**Kalimat saat output sesuai**
 
-**Jika perlu menjelaskan perubahan:** ada tiga tambahan, yaitu import `laneSchema`, membaca query `lane`, dan memasukkan lane ke objek `where`. Nilai valid: EXP, GOLD, MID, JUNGLE, ROAM.
+> IP interface Balai dan link ke Utara cocok dengan tabel. Tetangga Utara sudah `FULL`, dan rute OSPF ke LAN Pelabuhan memakai alamat R-UTARA sebagai next-hop.
 
-**Penutup:** tunjukkan hasil pengujian dan pembagian tugas anggota.
+Jika diminta menampilkan mask router, jalankan `show running-config` dan cari `interface FastEthernet1/0`. Baris IP yang dicari ialah `ip address 10.112.224.1 255.255.248.0`.
+
+## 3. Ping dari Balai Kota · 03:00–04:50
+
+**PC-Balai → Desktop → Command Prompt**. Jalankan satu per satu.
+
+```text
+ipconfig /all
+ping 10.112.224.1
+ping 10.112.160.2
+```
+
+| Cek | Patokan hasil |
+| --- | --- |
+| IP PC-Balai | IP `10.112.224.2`, mask `255.255.248.0`, gateway `10.112.224.1`. |
+| Ping gateway | `Reply from 10.112.224.1` menunjukkan PC bisa menjangkau gateway lokal. |
+| Ping Pelabuhan | `Reply from 10.112.160.2` menunjukkan paket mencapai PC Sensor Pel dan responsnya kembali. |
+
+**Kalau masih dalam slot waktu**, jalankan `tracert 10.112.160.2` di PC-Balai. Jalur yang diharapkan melewati R-PUSAT, R-UTARA, lalu R-PELABUHAN. Tunjukkan nama router pada topologi sambil membaca hop yang tampil.
+
+**Kalimat saat ping berhasil**
+
+> PC-Balai mendapat balasan dari gateway lokal dan dari PC Sensor Pel. Jadi koneksi lintas subnet yang kami contohkan berhasil dua arah.
+
+## 4. DHCP WiFi dan server simulasi · 04:50–06:30
+
+**Smartphone-U → Config → Wireless0**. Tunjukkan IP lease yang tampil, mask `255.255.192.0`, dan SSID `Wifi-Utara`. Gateway-nya `10.112.0.1`.
+
+**R-UTARA → CLI** pada prompt `#`. Cocokkan alamat dalam daftar dengan IP smartphone.
+
+```text
+show ip dhcp binding
+```
+
+**PC-Balai → Desktop → Command Prompt**. Uji akses ke Server-Internet pada topologi Packet Tracer.
+
+```text
+ping 8.8.8.8
+```
+
+**Kalimat saat hasil sesuai**
+
+> IP smartphone tercatat sebagai lease pada R-UTARA. PC-Balai juga mendapat balasan dari Server-Internet melalui R-ISP di simulasi.
+
+Kalau lease kosong saat demo, sebutkan hasilnya dan lanjutkan ke ping server agar tidak habis waktu di pengaturan WiFi.
+
+## 5. Penutup · 06:30–07:00
+
+> Kami membagi `10.112.0.0/16` menjadi 14 LAN dan enam link internal. Total blok yang dialokasikan 61.752 dari 65.536 alamat, yaitu 94,23% dari blok induk. Masih ada 3.784 alamat di luar blok yang sudah dialokasikan.
+
+Tutup dengan satu kalimat tentang hasil yang tampil. Contoh bila semua uji utama berhasil `Ping Balai ke Pelabuhan dan server simulasi membalas, dan IP smartphone cocok dengan lease DHCP di R-UTARA.`
+
+## Pegangan saat ada gangguan
+
+| Gejala | Yang langsung dicek |
+| --- | --- |
+| Ping pertama timeout | Tunggu ARP terbentuk dan ulangi sekali. Jika tetap gagal, lanjut ke cek yang relevan. |
+| Ping ke gateway Balai gagal | Cek IP/mask/gateway PC-Balai, `Fa1/0` R-PUSAT, dan `SW-P_Pegawai-Balai`. |
+| Gateway membalas, Pelabuhan gagal | Pada R-PUSAT cek tetangga Utara `FULL` dan rute `10.112.160.0/19`. Jika rute ada, cek gateway `10.112.160.1` pada LAN Pelabuhan. |
+| Smartphone belum mendapat IP | Cocokkan SSID dan autentikasi di Wireless0. Cek `show ip dhcp pool` dan `show ip dhcp binding` di R-UTARA. |
+| Hanya ping server simulasi yang gagal | Cek default route R-PUSAT via `203.0.113.113` dan rute balik `10.112.0.0/16` di R-ISP via `203.0.113.114`. |
+
+## Jika penguji minta tambahan
+
+| Diminta | Lokasi dan command |
+| --- | --- |
+| Bukti HTTP | **PC-Balai → Desktop → Web Browser**. Buka `http://8.8.8.8` jika HTTP di Server-Internet aktif. |
+| Bukti DNS | DNS di file yang diperiksa masih Off. Siapkan sebelum demo lewat **Server-Internet → Services → DNS**, pilih On dan tambahkan A record `www.smartcity.test` ke `8.8.8.8`. Uji dari **Command Prompt PC-Balai** dengan `nslookup www.smartcity.test`. |
+| Bukti tunnel GRE | **R-PUSAT → CLI**. Jalankan `show interfaces Tunnel0` lalu `ping 192.168.14.2`. Tunjukkan respons endpoint sesuai hasil. Pada konfigurasi saat ini OSPF di Tunnel0 pasif. |
+
+## Jawaban cepat
+
+| Pertanyaan | Jawaban |
+| --- | --- |
+| Kenapa VLSM? | Tiap LAN punya kebutuhan host berbeda. Prefix dipilih sesuai kapasitas yang diperlukan. |
+| Kenapa bloknya `/16`? | `/17` hanya punya 32.768 alamat, sedangkan alokasi internal perlu 61.752. `/16` menyediakan 65.536 alamat. |
+| Network dan broadcast link Pusat–Utara? | Network `10.112.241.32`, broadcast `10.112.241.35`, dan dua IP interface berada di antaranya. |
+| Apa beda VLSM dan OSPF? | VLSM membagi blok alamat. OSPF bertukar informasi rute menuju subnet yang sudah dibuat. |
+| 94,23% itu apa? | Persentase blok induk yang masuk alokasi subnet, termasuk ruang cadangan host di tiap subnet. |
+| Semua LAN sudah diuji? | Demo mengambil jalur Balai–Pelabuhan dan contoh WiFi Utara. Untuk hasil seluruh topologi, tunjukkan catatan pengujian sesuai checklist bagian 9 `README.md`. |
+
